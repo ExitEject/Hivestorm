@@ -28,6 +28,11 @@ https://github.com/meirwah/awesome-incident-response
 Sysinternals
 https://learn.microsoft.com/en-us/sysinternals/downloads/sysinternals-suite
 
+Microsoft Baseline Security Analyzer
+https://www.microsoft.com/en-us/download/details.aspx?id=55319
+
+Sysmon
+https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
 
 
 
