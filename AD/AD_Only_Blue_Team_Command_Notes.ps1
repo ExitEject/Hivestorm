@@ -102,6 +102,19 @@ write-host "replace 2 with their assigned ID`n"
 Write-Host "Here are the users currently enabled on this machine:"
 Get-LocalUser | ? Enabled -eq "True"
 
+Write-Host "Powershell History for each AD User:"
+Write-Host
+
+$Users = (Gci C:\Users\*\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt).FullName
+$Pasts = @($Users);
+
+foreach ($Past in $Pasts) {
+  write-host "`n----User Pwsh History Path $Past---`n" -ForegroundColor Magenta; 
+  get-content $Past
+}
+
+
+
 Write-Host "`nDo you need to change a password?`n Try this:"
 Write-Host "Set-ADAccountPassword -Identity `$user -Reset -NewPassword (ConvertTo-SecureString -AsPlainText "`$newPass" -Force) -verbose"  -ForegroundColor Green
 Write-Host "`nMake sure you give the variables values before doing this."
@@ -109,3 +122,16 @@ Write-Host "`nIf the user is a local one, not domain joined, you will have to tr
 Write-Host "`nnet user frank `"password`"`n" -ForegroundColor Green
 Write-Host "Do you need to disable an account?"
 Write-Host "`n #needs the SAMAccountName`n`n`$user = "lizzie"; `nDisable-ADAccount -Identity "`$user" `n`n#check its disabled`n(Get-ADUser -Identity $user).enabled`n" -ForegroundColor Green
+Write-Host "If it is a Local Account you can try this:"
+Write-Host "Disable-LocalUser -name "bad_account$"" -ForegroundColor Green
+Write-Host "`nNeed to remove a user from a group? Try this:"
+Write-Host "`$user = "erochester"`nremove-adgroupmember -identity Administrators -members `$User -verbose -confirm:`$false" -ForegroundColor Green
+Write-Host "Need to check running/stopped services?"
+Write-Host "get-service|Select Name,DisplayName,Status| sort status -descending | ft -Property * -AutoSize| Out-String -Width 4096" -ForegroundColor Green
+Write-Host "You can also add this:" -NoNewline
+Write-host " | findstr "`$servicename" " -ForegroundColor Green
+Write-Host "This will filter those results by the name of the service to find quickly if it is running or not."
+Write-Host "This command will get all dependent services on the service in question"
+Write-Host "Get-Service -Name `$Service -DependentServices" -ForegroundColor Green
+Write-Host "This command will get all running executables and the command that spawned them, might be useful for finding malware: "
+Write-Host "Get-WmiObject win32_service |? State -match "running" |`nselect Name, DisplayName, PathName, User | sort Name |`nft -wrap -autosize" -ForegroundColor Green
