@@ -19,6 +19,9 @@ POLUS$
 MIRA$
 "@ -split "\r?\n" | ForEach-Object { $_.Trim() }
 
+# Define the AD group that controls RDP access
+$rdpADGroup = "Remote Desktop Users"
+
 # Define allowed users
 $allowed_users = @"
 cyan
@@ -43,6 +46,31 @@ white
 pink
 "@ -split "\r?\n" | ForEach-Object { $_.Trim() }
 
+# Function to ensure authorized users are in Remote Desktop Users group
+function Add-RDPAccess-AD {
+    param (
+        [string[]]$authorized_users,
+        [string]$adGroup
+    )
+
+    foreach ($user in $authorized_users) {
+        try {
+            # Check if user is already in the RDP AD group
+            $isMember = Get-ADGroupMember -Identity $adGroup | Where-Object { $_.SamAccountName -eq $user }
+
+            if (-not $isMember) {
+                Write-Host "Adding $user to $adGroup group for RDP access" -ForegroundColor Yellow
+                Add-ADGroupMember -Identity $adGroup -Members $user -ErrorAction Stop
+                Write-Host "Successfully added $user to $adGroup group" -ForegroundColor Green
+            } else {
+                Write-Host "$user already has RDP access in $adGroup." -ForegroundColor Green
+            }
+        }
+        catch {
+            Write-Host "Failed to add $user to $adGroup group: $($_)" -ForegroundColor Red
+        }
+    }
+}
 
 # Function to remove unauthorized admin privileges and verify removal with logging
 function Remove-UnauthorizedAdminPrivileges {
@@ -71,9 +99,6 @@ function Remove-UnauthorizedAdminPrivileges {
         }
     }
 }
-
-
-
 
 # Function to check if a user is in the Administrators group
 function Is-UserAdmin {
@@ -131,3 +156,36 @@ if ($unauthorized_admins.Count -gt 0) {
 } else {
     Write-Host "No unauthorized users or admins found." -ForegroundColor Green
 }
+
+# Ensure authorized users have RDP access
+Write-Host "`nEnsuring authorized users have RDP access..." -ForegroundColor Cyan
+Add-RDPAccess-AD -authorized_users $allowed_users -adGroup $rdpADGroup
+
+
+# Define the list of services you want to check and restart if stopped
+$services = @("DNS", "Remote Desktop Services", "NTDS") # Replace with your desired services
+
+# Loop through each service in the list
+foreach ($serviceName in $services) {
+    # Get the status of the service
+    $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+
+    if ($service) {
+        # Check if the service is stopped
+        if ($service.Status -eq 'Stopped') {
+            Write-Output "Service '$serviceName' is stopped. Attempting to start..."
+            # Try to start the service
+            try {
+                Start-Service -Name $serviceName
+                Write-Output "Service '$serviceName' started successfully."
+            } catch {
+                Write-Output "Failed to start service '$serviceName'. Error: $_"
+            }
+        } else {
+            Write-Output "Service '$serviceName' is already running."
+        }
+    } else {
+        Write-Output "Service '$serviceName' not found on this system."
+    }
+}
+
