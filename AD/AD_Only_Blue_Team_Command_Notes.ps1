@@ -102,16 +102,27 @@ write-host "replace 2 with their assigned ID`n"
 Write-Host "Here are the users currently enabled on this machine:"
 Get-LocalUser | ? Enabled -eq "True"
 
-Write-Host "Powershell History for each AD User:"
-Write-Host
+# Ask the user if they want to proceed with viewing PowerShell history
+$Response = Read-Host "Do you want to display PowerShell history for each AD user? (y/n)"
 
-$Users = (Gci C:\Users\*\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt).FullName
-$Pasts = @($Users);
+# Check if the user's response is 'yes'
+if ($Response -eq "y") {
+    Write-Host "Powershell History for each AD User:"
+    Write-Host
 
-foreach ($Past in $Pasts) {
-  write-host "`n----User Pwsh History Path $Past---`n" -ForegroundColor Magenta; 
-  get-content $Past
+    # Get the list of PowerShell history files
+    $Users = (Get-ChildItem C:\Users\*\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt).FullName
+    $Pasts = @($Users)
+
+    # Loop through each user's history file and display its content
+    foreach ($Past in $Pasts) {
+        Write-Host "`n----User Pwsh History Path $Past---`n" -ForegroundColor Magenta
+        Get-Content $Past
+    }
+} else {
+    Write-Host "You chose not to display PowerShell history." -ForegroundColor Yellow
 }
+
 
 
 
