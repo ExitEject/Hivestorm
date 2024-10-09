@@ -94,13 +94,18 @@ try {
 #Print logged in users
 Write-Host "Users logged in:"
 qwinsta
-Start-Sleep -Seconds 2
-Write-Host "`nIf you need to log them off type: logoff 2 /v" 
+Write-Host "`nIf you need to log them off type:"
+Write-Host "logoff 2 /v" -ForegroundColor Green 
 write-host "replace 2 with their assigned ID`n"
 
 #Retrieve all hosts that are enabled
 Write-Host "Here are the users currently enabled on this machine:"
 Get-LocalUser | ? Enabled -eq "True"
 
-Write-Host "`nDo you need to change a password?`n Try this: Set-ADAccountPassword -Identity `$user -Reset -NewPassword (ConvertTo-SecureString -AsPlainText "`$newPass" -Force) -verbose`nMake sure you give the variables values before doing this."
-Write-Host "`nIf the user is a local one, not domain joined, you will have to try this`n`nnet user frank `"password`""
+Write-Host "`nDo you need to change a password?`n Try this:"
+Write-Host "Set-ADAccountPassword -Identity `$user -Reset -NewPassword (ConvertTo-SecureString -AsPlainText "`$newPass" -Force) -verbose"  -ForegroundColor Green
+Write-Host "`nMake sure you give the variables values before doing this."
+Write-Host "`nIf the user is a local one, not domain joined, you will have to try this:"
+Write-Host "`nnet user frank `"password`"`n" -ForegroundColor Green
+Write-Host "Do you need to disable an account?"
+Write-Host "`n #needs the SAMAccountName`n`n`$user = "lizzie"; `nDisable-ADAccount -Identity "`$user" `n`n#check its disabled`n(Get-ADUser -Identity $user).enabled`n" -ForegroundColor Green
