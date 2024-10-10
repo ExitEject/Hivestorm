@@ -265,3 +265,154 @@ Disable-ADAccount -Identity "Guest"
 
 # Disable the Administrator account
 Disable-ADAccount -Identity "Administrator"
+
+$currentUser = $env:USERNAME
+
+function New-RandomPassword {
+    param([int]$length = 15)
+    # Define character sets
+    $lowerChars = 'abcdefghijkmnopqrstuvwxyz'
+    $upperChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+    $digits = '23456789'
+    $specialChars = '!@#$%^&*()'
+    $allChars = $lowerChars + $upperChars + $digits + $specialChars
+
+    do {
+        # Ensure the password includes at least one character from each category
+        $passwordChars = @()
+        $passwordChars += ($lowerChars | Get-Random)
+        $passwordChars += ($upperChars | Get-Random)
+        $passwordChars += ($digits | Get-Random)
+        $passwordChars += ($specialChars | Get-Random)
+
+        # Fill the remaining length with random characters from all categories
+        for ($i = 1; $i -le ($length - 4); $i++) {
+            $passwordChars += ($allChars | Get-Random)
+        }
+
+        # Shuffle the password to randomize character positions
+        $password = ($passwordChars | Get-Random -Count $passwordChars.Count) -join ''
+
+        # Test if password meets complexity requirements
+        $meetsComplexity = ($password -match '[a-z]') -and ($password -match '[A-Z]') -and ($password -match '\d') -and ($password -match '[!@#$%^&*()]')
+    } while (-not $meetsComplexity)
+
+    return $password
+}
+
+# Exclude built-in accounts and service accounts
+$excludeUsers = @('Administrator', 'krbtgt', 'Guest', 'DefaultAccount', 'WDAGUtilityAccount')
+
+Get-ADUser -Filter * | Where-Object { 
+    $_.SamAccountName -ne $currentUser -and 
+    -not ($excludeUsers -contains $_.SamAccountName) 
+} | ForEach-Object {
+    $user = $_
+
+    # Initialize variables for password reset attempts
+    $maxRetries = 5
+    $retryCount = 0
+    $passwordResetSuccess = $false
+
+    do {
+        # Generate a new password
+        $newPassword = New-RandomPassword 15
+        $securePassword = ConvertTo-SecureString $newPassword -AsPlainText -Force
+
+        try {
+            # Reset password
+            Set-ADAccountPassword -Identity $user -Reset -NewPassword $securePassword -ErrorAction Stop
+            $passwordResetSuccess = $true
+            Write-Host "Password for user $($user.SamAccountName) has been reset."
+        } catch {
+            if ($_ -match 'password does not meet the length, complexity, or history requirement') {
+                if ($retryCount -lt $maxRetries) {
+                    $retryCount++
+                    Write-Host "Password reset failed due to password history. Retrying ($retryCount/$maxRetries)..."
+                } else {
+                    Write-Host "Failed to reset password for user $($user.SamAccountName) after $maxRetries attempts."
+                    $passwordResetSuccess = $false
+                    break
+                }
+            } else {
+                Write-Host "Failed to reset password for user $($user.SamAccountName): $_"
+                $passwordResetSuccess = $false
+                break
+            }
+        }
+    } while (-not $passwordResetSuccess)
+
+    if ($passwordResetSuccess) {
+        # Set 'PasswordNeverExpires' to false
+        try {
+            Set-ADUser -Identity $user -PasswordNeverExpires $false -ErrorAction Stop
+        } catch {
+            Write-Host "Failed to set 'PasswordNeverExpires' for user $($user.SamAccountName): $_"
+        }
+
+        # Set 'ChangePasswordAtLogon' to true
+        try {
+            Set-ADUser -Identity $user -ChangePasswordAtLogon $true -ErrorAction Stop
+        } catch {
+            Write-Host "Failed to set 'ChangePasswordAtLogon' for user $($user.SamAccountName): $_"
+        }
+    }
+}
+
+# Define the date threshold for stale passwords (e.g., 90 days ago)
+$thresholdDate = (Get-Date).AddDays(-90)
+
+# Initialize arrays to hold users
+$usersWithNoPasswordRequired = @()
+$usersWithPasswordNeverExpires = @()
+$stalePasswordUsers = @()
+$usersMustChangePassword = @()
+$usersWithReversibleEncryption = @()
+
+# Get all user accounts
+$allUsers = Get-ADUser -Filter * -Properties SamAccountName, PasswordNotRequired, PasswordNeverExpires, PasswordLastSet, PasswordExpired, AllowReversiblePasswordEncryption
+
+foreach ($user in $allUsers) {
+    # Check for 'PasswordNotRequired'
+    if ($user.PasswordNotRequired) {
+        $usersWithNoPasswordRequired += $user
+    }
+
+    # Check for 'PasswordNeverExpires'
+    if ($user.PasswordNeverExpires) {
+        $usersWithPasswordNeverExpires += $user
+    }
+
+    # Check for stale passwords
+    if ($user.PasswordLastSet -lt $thresholdDate) {
+        $stalePasswordUsers += $user
+    }
+
+    # Check for 'PasswordExpired'
+    if ($user.PasswordExpired) {
+        $usersMustChangePassword += $user
+    }
+
+    # Check for 'AllowReversiblePasswordEncryption'
+    if ($user.AllowReversiblePasswordEncryption) {
+        $usersWithReversibleEncryption += $user
+    }
+}
+
+# Display results
+Write-Host "Users with 'PasswordNotRequired' set to True:"
+$usersWithNoPasswordRequired | Select-Object SamAccountName
+
+Write-Host "`nUsers with 'PasswordNeverExpires' set to True:"
+$usersWithPasswordNeverExpires | Select-Object SamAccountName
+
+Write-Host "`nUsers who haven't changed passwords since $thresholdDate`:"
+$stalePasswordUsers | Select-Object SamAccountName, PasswordLastSet
+
+Write-Host "`nUsers who must change password at next logon:"
+$usersMustChangePassword | Select-Object SamAccountName
+
+Write-Host "`nUsers with 'AllowReversiblePasswordEncryption' set to True:"
+$usersWithReversibleEncryption | Select-Object SamAccountName
+
+
