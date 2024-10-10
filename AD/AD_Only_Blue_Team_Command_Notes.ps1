@@ -123,6 +123,7 @@ if ($Response -eq "y") {
     Write-Host "You chose not to display PowerShell history." -ForegroundColor Yellow
 }
 
+Get-ChildItem -Path C:\Users -Include *.txt,*.bak,*.ini,*.pdf,*.xls,*.xlsx,*.doc,*.docx,*.log -File -Recurse -ErrorAction SilentlyContinue
 
 
 
