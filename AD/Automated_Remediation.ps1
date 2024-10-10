@@ -415,4 +415,37 @@ $usersMustChangePassword | Select-Object SamAccountName
 Write-Host "`nUsers with 'AllowReversiblePasswordEncryption' set to True:"
 $usersWithReversibleEncryption | Select-Object SamAccountName
 
+try {
+    # Define the registry path and value name
+    $registryPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
+    $valueName = "DisableCAD"
+    $desiredValue = 0
+
+    # Check if the registry path exists; if not, create it
+    if (-not (Test-Path $registryPath)) {
+        Write-Output "Registry path not found. Creating path: $registryPath"
+        New-Item -Path $registryPath -Force | Out-Null
+    }
+
+    # Get the current value of DisableCAD
+    $currentValue = Get-ItemProperty -Path $registryPath -Name $valueName -ErrorAction SilentlyContinue
+
+    if ($currentValue.$valueName -ne $desiredValue) {
+        # Set DisableCAD to 0 to require CTRL+ALT+DEL
+        Set-ItemProperty -Path $registryPath -Name $valueName -Value $desiredValue
+        Write-Output "Successfully updated '$valueName' to '$desiredValue'. CTRL+ALT+DEL is now required at logon."
+
+        # Optionally, you can force a policy update
+        Write-Output "Updating group policy settings..."
+        gpupdate /force | Out-Null
+        Write-Output "Group policy updated successfully."
+    }
+    else {
+        Write-Output "'$valueName' is already set to '$desiredValue'. No changes are necessary."
+    }
+}
+catch {
+    Write-Error "An error occurred: $_"
+    exit 1
+}
 
