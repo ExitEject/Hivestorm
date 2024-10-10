@@ -587,3 +587,20 @@ Set-ItemProperty -Path $regPath -Name "NoAutoUpdate" -Value 0 -Type DWord
 Set-ItemProperty -Path $regPath -Name "IncludeRecommendedUpdates" -Value 1 -Type DWord
 
 Write-Host "Automatic Updates configured to auto-download and schedule installation."
+
+# Set the path to cyan's desktop
+$desktopPath = "C:\Users\cyan\Desktop"
+# Set the filename of the CCleaner executable
+$ccleanerExe = "CCleaner64.exe"
+# Combine the path and filename
+$ccleanerPath = Join-Path $desktopPath $ccleanerExe
+
+# Check if the file exists
+if (Test-Path $ccleanerPath) {
+    # Delete the CCleaner executable
+    Remove-Item $ccleanerPath -Force
+    Write-Host "CCleaner executable deleted from desktop."
+} else {
+    Write-Host "CCleaner executable not found on desktop."
+}
+
