@@ -544,3 +544,46 @@ foreach ($share in $CurrentShares) {
 }
 
 Write-Output "Share cleanup process completed."
+
+### Part 1: Stop and Disable the Microsoft FTP Service ###
+
+# Define the service name
+$serviceName = "FTPSVC"
+
+# Check if the service exists
+$ftpService = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+
+if ($ftpService) {
+    # Stop the service if it's running
+    if ($ftpService.Status -ne 'Stopped') {
+        Stop-Service -Name $serviceName -Force
+        Write-Host "FTP Service stopped."
+    }
+
+    # Disable the service
+    Set-Service -Name $serviceName -StartupType Disabled
+    Write-Host "FTP Service disabled."
+} else {
+    Write-Host "FTP Service not found on this system."
+}
+
+### Part 2: Configure Automatic Windows Updates ###
+
+# Define the registry path for Windows Update policies
+$regPath = "HKLM:\Software\Policies\Microsoft\Windows\WindowsUpdate\AU"
+
+# Create the registry key if it doesn't exist
+if (-not (Test-Path $regPath)) {
+    New-Item -Path $regPath -Force | Out-Null
+}
+
+# Set Automatic Updates to auto-download and schedule the install (Option 4)
+Set-ItemProperty -Path $regPath -Name "AUOptions" -Value 4 -Type DWord
+
+# Enable Automatic Updates
+Set-ItemProperty -Path $regPath -Name "NoAutoUpdate" -Value 0 -Type DWord
+
+# Include updates for other Microsoft products
+Set-ItemProperty -Path $regPath -Name "IncludeRecommendedUpdates" -Value 1 -Type DWord
+
+Write-Host "Automatic Updates configured to auto-download and schedule installation."
