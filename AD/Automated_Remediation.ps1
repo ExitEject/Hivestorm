@@ -189,3 +189,55 @@ foreach ($serviceName in $services) {
     }
 }
 
+# Enforce password complexity on local accounts
+Write-Host "Enforcing strong password policies for local accounts..." -ForegroundColor Green
+
+# Define local security policy parameters
+$localPolicy = @(
+    @{ Name = 'MinimumPasswordLength'; Value = 12 },        # Minimum length of 12 characters
+    @{ Name = 'PasswordComplexity'; Value = 1 },            # Enforce password complexity (1: enabled, 0: disabled)
+    @{ Name = 'MinimumPasswordAge'; Value = 1 },            # Minimum password age of 1 day
+    @{ Name = 'MaximumPasswordAge'; Value = 60 },           # Maximum password age of 60 days
+    @{ Name = 'PasswordHistorySize'; Value = 24 },          # Remember last 24 passwords (prevents reuse)
+    @{ Name = 'LockoutBadCount'; Value = 5 },               # Lock out after 5 failed attempts
+    @{ Name = 'LockoutDuration'; Value = 30 },              # Lockout duration of 30 minutes
+    @{ Name = 'LockoutObservationWindow'; Value = 30 }      # Failed attempt count reset after 30 minutes
+)
+
+foreach ($policy in $localPolicy) {
+    secedit /export /cfg "$env:TEMP\secpol.cfg"
+    (Get-Content "$env:TEMP\secpol.cfg") -replace "($($policy.Name)=).*", "`$1$($policy.Value)" | Set-Content "$env:TEMP\secpol.cfg"
+    secedit /configure /db secedit.sdb /cfg "$env:TEMP\secpol.cfg" /areas SECURITYPOLICY
+    Remove-Item "$env:TEMP\secpol.cfg"
+}
+
+Write-Host "Password policy for local accounts enforced successfully." -ForegroundColor Green
+
+# Import the Active Directory module
+Import-Module ActiveDirectory
+
+# Retrieve the domain name and store it in a variable
+$domain = (Get-WmiObject Win32_ComputerSystem).Domain
+
+if (-not $domain) {
+    Write-Error "Unable to retrieve the domain name. Ensure the computer is joined to a domain."
+    exit
+}
+
+Write-Host "Enforcing strong password policies for AD accounts in domain: $domain..."
+
+# Modify the default domain password policy
+Set-ADDefaultDomainPasswordPolicy `
+    -Identity $domain `
+    -PasswordHistoryCount 24 `
+    -MaxPasswordAge 60.00:00:00 `
+    -MinPasswordAge 1.00:00:00 `
+    -LockoutThreshold 5 `
+    -LockoutDuration 00:30:00 `
+    -LockoutObservationWindow 00:30:00
+
+Write-Host "Password policy for AD accounts enforced successfully."
+
+
+
+
