@@ -146,3 +146,5 @@ Write-Host "This command will get all dependent services on the service in quest
 Write-Host "Get-Service -Name `$Service -DependentServices" -ForegroundColor Green
 Write-Host "This command will get all running executables and the command that spawned them, might be useful for finding malware: "
 Write-Host "Get-WmiObject win32_service |? State -match "running" |`nselect Name, DisplayName, PathName, User | sort Name |`nft -wrap -autosize" -ForegroundColor Green
+Write-Host "Need to find CNAME aliases? nslookup -type=CNAME $CNAME"
+Write-Host "nslookup -type=CNAME mira.crewmate.local"
