@@ -1,3 +1,12 @@
+# Import the Active Directory module
+Import-Module ActiveDirectory
+
+# Get the domain distinguished name
+$domainDN = (Get-ADDomain).DistinguishedName
+
+# Get the "Administrators" group from the Builtin container
+$adminGroup = Get-ADGroup -Filter { Name -eq "Administrators" } -SearchBase "CN=Builtin,$domainDN"
+
 # Define current users (typically from the Administrators group)
 $current_users = @"
 Administrator
@@ -56,7 +65,7 @@ function Add-RDPAccess-AD {
     foreach ($user in $authorized_users) {
         try {
             # Check if user is already in the RDP AD group
-            $isMember = Get-ADGroupMember -Identity $adGroup | Where-Object { $_.SamAccountName -eq $user }
+            $isMember = Get-ADGroupMember -Identity $adGroup -Recursive | Where-Object { $_.SamAccountName -eq $user }
 
             if (-not $isMember) {
                 Write-Host "Adding $user to $adGroup group for RDP access" -ForegroundColor Yellow
@@ -77,17 +86,17 @@ function Remove-UnauthorizedAdminPrivileges {
     param (
         [string[]]$unauthorized_admins
     )
-    
+
     foreach ($admin in $unauthorized_admins) {
         try {
             Write-Host "Attempting to remove admin privileges from account: $admin" -ForegroundColor Yellow
-            
+
             # Remove the user from the Administrators group
-            Remove-LocalGroupMember -Group "Administrators" -Member $admin -ErrorAction Stop
-            
+            Remove-ADGroupMember -Identity $adminGroup.DistinguishedName -Members $admin -Confirm:$false -ErrorAction Stop
+
             # Verification: Check if the user is still in the Administrators group
-            $isMember = Get-LocalGroupMember -Group "Administrators" -Member $admin -ErrorAction SilentlyContinue
-            
+            $isMember = Get-ADGroupMember -Identity $adminGroup.DistinguishedName -Recursive | Where-Object { $_.SamAccountName -eq $admin }
+
             if ($isMember) {
                 Write-Host "Failed to remove admin privileges from: $admin" -ForegroundColor Red
             } else {
@@ -95,7 +104,7 @@ function Remove-UnauthorizedAdminPrivileges {
             }
         }
         catch {
-            Write-Host ("Error removing admin privileges from $admin " + $($_)) -ForegroundColor Red
+            Write-Host ("Error removing admin privileges from $admin`: $_") -ForegroundColor Red
         }
     }
 }
@@ -105,10 +114,10 @@ function Is-UserAdmin {
     param (
         [string]$username
     )
-    
+
     try {
-        $member = Get-LocalGroupMember -Group "Administrators" -Member $username -ErrorAction SilentlyContinue
-        return $null -ne $member
+        $isMember = Get-ADGroupMember -Identity $adminGroup.DistinguishedName -Recursive | Where-Object { $_.SamAccountName -eq $username }
+        return $null -ne $isMember
     }
     catch {
         return $false
@@ -140,27 +149,50 @@ if ($unauthorized_admins) {
     Write-Host "`nNo unauthorized admins found." -ForegroundColor Green
 }
 
-# Ask the user if they want to remove admin privileges
-if ($unauthorized_admins.Count -gt 0) {
-    $response = Read-Host "`nDo you want to remove admin privileges from unauthorized accounts? (yes/no)"
-    if ($response.Trim().ToLower() -eq 'yes') {
-        if ($unauthorized_admins.Count -gt 0) {
-            # Remove admin privileges from unauthorized admins
-            Remove-UnauthorizedAdminPrivileges -unauthorized_admins $unauthorized_admins
-        } else {
-            Write-Host "No unauthorized admins to remove." -ForegroundColor Yellow
+# Function to remove unauthorized admin privileges and verify removal with logging
+function Remove-UnauthorizedAdminPrivileges2 {
+    param (
+        [string[]]$unauthorized_admins
+    )
+    
+    # Define administrative groups
+    $adminGroups = @(
+        "Administrators",
+        "Domain Admins",
+        "Enterprise Admins",
+        "Schema Admins",
+        "Account Operators",
+        "Server Operators",
+        "Backup Operators",
+        "Print Operators"
+    )
+
+    foreach ($admin in $unauthorized_admins) {
+        foreach ($group in $adminGroups) {
+            try {
+                Write-Host "Attempting to remove '$admin' from group '$group'" -ForegroundColor Yellow
+                
+                # Remove the user from the admin group
+                Remove-ADGroupMember -Identity $group -Members $admin -Confirm:$false -ErrorAction Stop
+                
+                Write-Host "Removed '$admin' from group '$group'" -ForegroundColor Green
+            } catch {
+                # Handle errors if the user is not a member of the group
+                if ($_.Exception.Message -notmatch "is not a member") {
+                    Write-Host "Error removing '$admin' from group '$group': $_" -ForegroundColor Red
+                } else {
+                    Write-Host "'$admin' is not a member of '$group'" -ForegroundColor Cyan
+                }
+            }
         }
-    } else {
-        Write-Host "No accounts will be modified." -ForegroundColor Yellow
     }
-} else {
-    Write-Host "No unauthorized users or admins found." -ForegroundColor Green
 }
+Remove-UnauthorizedAdminPrivileges2 -unauthorized_admins $unauthorized_admins
+
 
 # Ensure authorized users have RDP access
 Write-Host "`nEnsuring authorized users have RDP access..." -ForegroundColor Cyan
 Add-RDPAccess-AD -authorized_users $allowed_users -adGroup $rdpADGroup
-
 
 # Define the list of services you want to check and restart if stopped
 $services = @("DNS", "Remote Desktop Services", "NTDS") # Replace with your desired services
@@ -213,22 +245,12 @@ foreach ($policy in $localPolicy) {
 
 Write-Host "Password policy for local accounts enforced successfully." -ForegroundColor Green
 
-# Import the Active Directory module
-Import-Module ActiveDirectory
-
-# Retrieve the domain name and store it in a variable
-$domain = (Get-WmiObject Win32_ComputerSystem).Domain
-
-if (-not $domain) {
-    Write-Error "Unable to retrieve the domain name. Ensure the computer is joined to a domain."
-    exit
-}
-
-Write-Host "Enforcing strong password policies for AD accounts in domain: $domain..."
+# Enforce strong password policies for AD accounts
+Write-Host "Enforcing strong password policies for AD accounts in domain: $domainDN..."
 
 # Modify the default domain password policy
 Set-ADDefaultDomainPasswordPolicy `
-    -Identity $domain `
+    -Identity $domainDN `
     -PasswordHistoryCount 24 `
     -MaxPasswordAge 60.00:00:00 `
     -MinPasswordAge 1.00:00:00 `
@@ -238,6 +260,8 @@ Set-ADDefaultDomainPasswordPolicy `
 
 Write-Host "Password policy for AD accounts enforced successfully."
 
+# Disable the Guest account
+Disable-ADAccount -Identity "Guest"
 
-
-
+# Disable the Administrator account
+Disable-ADAccount -Identity "Administrator"
