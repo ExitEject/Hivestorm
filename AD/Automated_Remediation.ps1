@@ -485,3 +485,62 @@ if ($service.Status -eq 'Running') {
 } else {
     Write-Host "Failed to start Windows Defender service." -ForegroundColor Red
 }
+
+# Define the list of authorized shares
+$AuthorizedShares = @(
+    "C$",
+    "ADMIN$",
+    "IPC$"
+    # Add other authorized shares here, e.g., "SharedDocs"
+)
+
+# Define default shares to exclude from removal
+$DefaultShares = @(
+    "C$",
+    "ADMIN$",
+    "IPC$",
+    "NETLOGON",
+    "SYSVOL"
+    # Add other default shares that should never be removed
+)
+
+# Retrieve all current shares using CIM (recommended over WMI)
+try {
+    $CurrentShares = Get-CimInstance -ClassName Win32_Share
+} catch {
+    Write-Error "Failed to retrieve current shares: $_"
+    exit
+}
+
+# Iterate through each share and identify unauthorized ones
+foreach ($share in $CurrentShares) {
+    $shareName = $share.Name
+
+    # Skip default shares
+    if ($DefaultShares -contains $shareName) {
+        Write-Output "Default share present: '$shareName'. No action taken."
+        continue
+    }
+
+    # Check if the share is authorized
+    if (-not ($AuthorizedShares -contains $shareName)) {
+        Write-Output "Unauthorized share detected: '$shareName'. Attempting to remove..."
+
+        try {
+            # Remove the unauthorized share using CIM method
+            $deleteResult = Invoke-CimMethod -InputObject $share -MethodName Delete
+
+            if ($deleteResult.ReturnValue -eq 0) {
+                Write-Output "Successfully removed share: '$shareName'."
+            } else {
+                Write-Warning "Failed to remove share: '$shareName'. ReturnValue: $($deleteResult.ReturnValue)"
+            }
+        } catch {
+            Write-Error "Error removing share '$shareName': $_"
+        }
+    } else {
+        Write-Output "Authorized share present: '$shareName'. No action taken."
+    }
+}
+
+Write-Output "Share cleanup process completed."
