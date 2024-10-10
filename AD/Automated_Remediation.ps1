@@ -548,20 +548,20 @@ Write-Output "Share cleanup process completed."
 ### Part 1: Stop and Disable the Microsoft FTP Service ###
 
 # Define the service name
-$serviceName = "FTPSVC"
+$badserviceName = "FTPSVC"
 
 # Check if the service exists
-$ftpService = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+$ftpService = Get-Service -Name $badserviceName -ErrorAction SilentlyContinue
 
 if ($ftpService) {
     # Stop the service if it's running
     if ($ftpService.Status -ne 'Stopped') {
-        Stop-Service -Name $serviceName -Force
+        Stop-Service -Name $badserviceName -Force
         Write-Host "FTP Service stopped."
     }
 
     # Disable the service
-    Set-Service -Name $serviceName -StartupType Disabled
+    Set-Service -Name $badserviceName -StartupType Disabled
     Write-Host "FTP Service disabled."
 } else {
     Write-Host "FTP Service not found on this system."
