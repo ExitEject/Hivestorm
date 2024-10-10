@@ -126,7 +126,8 @@ if ($Response -eq "y") {
 Get-ChildItem -Path C:\Users -Include *.txt,*.bak,*.ini,*.pdf,*.xls,*.xlsx,*.doc,*.docx,*.log -File -Recurse -ErrorAction SilentlyContinue
 
 
-
+Write-Host "Do you need to reenable something like Microsoft Defender but there's no GPO?"
+Write-Host "Search run -> regedit -> HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender -> DisableAntiSpyware -> Set to 0"
 Write-Host "`nDo you need to change a password?`n Try this:"
 Write-Host "Set-ADAccountPassword -Identity `$user -Reset -NewPassword (ConvertTo-SecureString -AsPlainText "`$newPass" -Force) -verbose"  -ForegroundColor Green
 Write-Host "`nMake sure you give the variables values before doing this."
