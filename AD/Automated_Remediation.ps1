@@ -446,7 +446,6 @@ try {
 }
 catch {
     Write-Error "An error occurred: $_"
-    exit 1
 }
 
 # Check for common misconfigurations:
