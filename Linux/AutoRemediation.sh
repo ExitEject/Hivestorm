@@ -10,7 +10,7 @@ fi
 AUTHORIZED_USERS=("blue" "green" "brown" "purple" "orange" "lime" "yellow" "black" "cyan" "red" "white" "pink")
 
 # Add normally authorized system accounts (built-in users)
-SYSTEM_USERS=("root" "ftp" "messagebus" "sshd" "daemon" "bin" "postfix" "rpc" "rpcuser" "dbus" "ntp" "saslauth" "chrony" "usbmux" "polkitd" "avahi" "systemd-journal" "mysql" "systemd-coredump" "sys" "sync" "games" "man" "lp" "mail" "news" "uucp" "proxy" "www-data" "backup" "list" "irc" "gnats" "nobody" "systemd-timesync" "systemd-network" "systemd-resolve" "systemd-bus-proxy")
+SYSTEM_USERS=("fwupd-refresh" "hplip" "dnsmasq" "sssd" "pulse" "flatpak" "saned" "colord" "root" "syslog" "_apt" "tss" "rtkit" "kernoops" "uuidd" "cups-pk-helper" "lightdm" "tcpdump" "ftp" "speech-dispatcher" "avahi-autoipd" "nm-openvpn" "geoclue" "messagebus" "sshd" "daemon" "bin" "postfix" "rpc" "rpcuser" "dbus" "ntp" "saslauth" "chrony" "usbmux" "polkitd" "avahi" "systemd-journal" "mysql" "systemd-coredump" "sys" "sync" "games" "man" "lp" "mail" "news" "uucp" "proxy" "www-data" "backup" "list" "irc" "gnats" "nobody" "systemd-timesync" "systemd-network" "systemd-resolve" "systemd-bus-proxy")
 
 # Define sudo/root allowed users
 SUDO_ALLOWED_USERS=("cyan" "red" "white" "pink")
