@@ -122,7 +122,7 @@ if ($Response -eq "y") {
 } else {
     Write-Host "You chose not to display PowerShell history." -ForegroundColor Yellow
 }
-
+netstat -abonp TCP
 Get-ChildItem -Path C:\Users -Include *.txt,*.bak,*.ini,*.pdf,*.xls,*.xlsx,*.doc,*.docx,*.log,*.csv,*.exe -File -Recurse -ErrorAction SilentlyContinue
 Write-Host "Need to find a specific string across the entire machine?"
 Write-Host "Get-ChildItem -Path C:\Users -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { if (Select-String -Path `$_.FullName -Pattern `'flag{`' -Quiet -ErrorAction SilentlyContinue) { `$_.FullName } }" -ForegroundColor Green
