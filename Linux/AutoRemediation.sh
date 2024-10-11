@@ -56,6 +56,8 @@ else
     echo "Security updates source file does not exist."
 fi
 
+echo "deb http://archive.ubuntu.com/ubuntu jammy-security main restricted universe multiverse" >> /etc/apt/sources.list.d/official-package-repositories.list
+
 echo "Updating system packages..."
 
 apt update -y
