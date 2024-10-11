@@ -201,13 +201,13 @@ remove_minetest_service() {
 # Update Apache
 update_apache() {
     echo "Updating Apache..."
-    apt update && apt upgrade apache2 || echo "Failed to update Apache"
+    apt upgrade apache2 || echo "Failed to update Apache"
 }
 
 # Update PHP
 update_php() {
     echo "Updating PHP..."
-    apt update && apt upgrade php || echo "Failed to update PHP"
+    apt upgrade php || echo "Failed to update PHP"
 }
 
 # Remove prohibited software
@@ -234,7 +234,7 @@ disable_services() {
 # Update Sudo
 update_sudo() {
     echo "Updating sudo..."
-    apt update && apt upgrade sudo || echo "Failed to update sudo"
+    apt upgrade sudo || echo "Failed to update sudo"
 }
 
 # Enable IPv4 protection features
@@ -275,7 +275,7 @@ fix_grub_permissions() {
 # Apply all security updates
 apply_security_updates() {
     echo "Applying security updates..."
-    apt update && apt upgrade -y || echo "Failed to apply security updates"
+    apt upgrade -y || echo "Failed to apply security updates"
 }
 
 # Disable Samba SMB1 protocol and require encryption
@@ -284,6 +284,12 @@ harden_samba() {
     echo "server min protocol = SMB2" >> /etc/samba/smb.conf || echo "Failed to disable SMB1"
     echo "smb encrypt = required" >> /etc/samba/smb.conf || echo "Failed to require Samba encryption"
     systemctl restart smbd
+}
+
+# Try to install apt install open-vm-tools-desktop
+install_vm-tools-desktop() {
+   echo "Install vm-tools-desktop to enhance copy paste..."
+   apt install open-vm-tools-desktop -y || echo "Failed to install open-vm-tools-desktop"
 }
 
 # Main execution
@@ -307,5 +313,6 @@ harden_apache
 fix_grub_permissions
 apply_security_updates
 harden_samba
+install_vm-tools-desktop
 
 echo "Remediation script complete."
