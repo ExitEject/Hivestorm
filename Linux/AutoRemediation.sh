@@ -6,21 +6,17 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-echo "Removing unauthorized users maroon and rose..."
+echo "Removing unauthorized users, make sure to replace the names not allowed here"
 
-if id -u maroon >/dev/null 2>&1; then
-    userdel -r maroon
-    echo "Removed user maroon."
-else
-    echo "User maroon does not exist."
-fi
+for user in maroon rose; do
+    if id -u "$user" >/dev/null 2>&1; then
+        userdel -r "$user"
+        echo "Removed user $user."
+    else
+        echo "User $user does not exist."
+    fi
+done
 
-if id -u rose >/dev/null 2>&1; then
-    userdel -r rose
-    echo "Removed user rose."
-else
-    echo "User rose does not exist."
-fi
 
 echo "Setting minimum password length to 10..."
 
