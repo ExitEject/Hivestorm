@@ -77,31 +77,38 @@ pink
 "@ -split "\r?\n" | ForEach-Object { $_.Trim() }
 
 # Function to ensure authorized users are in Remote Desktop Users group
+# Function to ensure authorized users are in Remote Desktop Users group
 function Add-RDPAccess-AD {
     param (
         [string[]]$authorized_users,
-        [string]$adGroup
+        $adGroup
     )
 
     foreach ($user in $authorized_users) {
         try {
             # Check if user is already in the RDP AD group
-            $isMember = Get-ADGroupMember -Identity $adGroup -Recursive | Where-Object { $_.SamAccountName -eq $user }
+            $isMember = Get-ADGroupMember -Identity $adGroup.DistinguishedName -Recursive | Where-Object { $_.SamAccountName -eq $user }
 
             if (-not $isMember) {
-                Write-Host "Adding $user to $adGroup group for RDP access" -ForegroundColor Yellow
-                Add-ADGroupMember -Identity $adGroup -Members $user -ErrorAction Stop
-                Write-Host "Successfully added $user to $adGroup group" -ForegroundColor Green
+                Write-Host "Adding $user to $($adGroup.Name) group for RDP access" -ForegroundColor Yellow
+                Add-ADGroupMember -Identity $adGroup.DistinguishedName -Members $user -ErrorAction Stop
+                Write-Host "Successfully added $user to $($adGroup.Name) group" -ForegroundColor Green
             } else {
-                Write-Host "$user already has RDP access in $adGroup." -ForegroundColor Green
+                Write-Host "$user already has RDP access in $($adGroup.Name)." -ForegroundColor Green
             }
         }
         catch {
-            Write-Host "Failed to add $user to $adGroup group: $($_)" -ForegroundColor Red
+            Write-Host "Failed to add $user to $($adGroup.Name) group: $($_)" -ForegroundColor Red
         }
     }
 }
 
+# Get the "Remote Desktop Users" group from the Builtin container
+$rdpADGroup = Get-ADGroup -Filter { Name -eq "Remote Desktop Users" } -SearchBase "CN=Builtin,$domainDN"
+
+# Ensure authorized users have RDP access
+Write-Host "`nEnsuring authorized users have RDP access..." -ForegroundColor Cyan
+Add-RDPAccess-AD -authorized_users $allowed_users -adGroup $rdpADGroup
 # Function to remove unauthorized admin privileges and verify removal with logging
 function Remove-UnauthorizedAdminPrivileges {
     param (
