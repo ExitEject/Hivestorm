@@ -8,15 +8,44 @@ fi
 
 echo "Removing unauthorized users, make sure to replace the names not allowed here"
 
-for user in maroon rose; do
-    if id -u "$user" >/dev/null 2>&1; then
+# Define authorized and sudo/root allowed users
+AUTHORIZED_USERS=("blue" "green" "brown" "purple" "orange" "lime" "yellow" "black" "cyan" "red" "white" "pink")
+SUDO_ALLOWED_USERS=("cyan" "red" "white" "pink")
+
+# Get current users from the system
+CURRENT_USERS=$(cut -d: -f1 /etc/passwd)
+
+# Function to remove unauthorized sudo/root privileges
+remove_sudo_privileges() {
+    local user=$1
+    if groups "$user" | grep -qE '\bsudo\b|\broot\b'; then
+        deluser "$user" sudo
+        deluser "$user" root
+        echo "Removed sudo/root privileges from user $user."
+    fi
+}
+
+# Remove users not in the authorized list
+for user in $CURRENT_USERS; do
+    if [[ ! " ${AUTHORIZED_USERS[@]} " =~ " ${user} " ]]; then
+        echo "User $user is not authorized. Deleting user..."
         userdel -r "$user"
-        echo "Removed user $user."
-    else
-        echo "User $user does not exist."
     fi
 done
 
+# Check users with sudo or root privileges
+for user in $CURRENT_USERS; do
+    if groups "$user" | grep -qE '\bsudo\b|\broot\b'; then
+        if [[ ! " ${SUDO_ALLOWED_USERS[@]} " =~ " ${user} " ]]; then
+            echo "User $user is not allowed sudo/root privileges. Removing privileges..."
+            remove_sudo_privileges "$user"
+        else
+            echo "User $user is allowed sudo/root privileges."
+        fi
+    fi
+done
+
+echo "Script execution completed."
 
 echo "Setting minimum password length to 10..."
 
