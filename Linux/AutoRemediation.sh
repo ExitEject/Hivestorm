@@ -60,6 +60,35 @@ echo "Updating system packages..."
 
 apt update -y
 apt upgrade -y
+apt install unattended-upgrades -y
+dpkg-reconfigure --priority=low unattended-upgrades
+
+# Set strong password policies
+echo "Enforcing strong password policies..."
+apt install libpam-cracklib -y
+sed -i '/pam_cracklib.so/ s/retry=3 minlen=8 difok=3/retry=3 minlen=12 difok=3 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1/' /etc/pam.d/common-password
+
+echo "Installing Fail2Ban to prevent brute-force attacks..."
+apt install fail2ban -y
+systemctl enable fail2ban
+systemctl start fail2ban
+
+echo "Setting up system auditing with auditd..."
+apt install auditd audispd-plugins -y
+systemctl enable auditd
+systemctl start auditd
+
+echo "Applying security kernel parameters..."
+echo "kernel.randomize_va_space = 2" | sudo tee -a /etc/sysctl.conf
+echo "fs.protected_hardlinks = 1" | sudo tee -a /etc/sysctl.conf
+echo "fs.protected_symlinks = 1" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+
+echo "Configuring password expiration policies..."
+sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS   90/' /etc/login.defs
+sed -i 's/^PASS_MIN_DAYS.*/PASS_MIN_DAYS   10/' /etc/login.defs
+sed -i 's/^PASS_WARN_AGE.*/PASS_WARN_AGE   7/' /etc/login.defs
+
 
 echo "Removing prohibited MP3 files..."
 
