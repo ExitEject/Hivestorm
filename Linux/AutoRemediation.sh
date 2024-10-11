@@ -129,3 +129,158 @@ fi
 systemctl restart sshd
 
 echo "Remediation script completed successfully."
+
+###############################EXPERIMENTAL TEST CODE###############################################
+# Function to check and fix permissions on the shadow file
+fix_shadow_permissions() {
+    echo "Fixing permissions on /etc/shadow..."
+    chmod 640 /etc/shadow || echo "Failed to fix shadow permissions"
+}
+
+# Function to enable firewall
+enable_firewall() {
+    echo "Enabling firewall..."
+    ufw enable || echo "Failed to enable firewall"
+}
+
+# Enable IPv4 TCP SYN cookies
+enable_syn_cookies() {
+    echo "Enabling IPv4 TCP SYN cookies..."
+    sysctl -w net.ipv4.tcp_syncookies=1 || echo "Failed to enable SYN cookies"
+}
+
+# Ignore bogus ICMP errors
+ignore_bogus_icmp() {
+    echo "Ignoring bogus ICMP errors..."
+    sysctl -w net.ipv4.icmp_ignore_bogus_error_responses=1 || echo "Failed to ignore bogus ICMP errors"
+}
+
+# Enable logging of martian packets
+enable_martian_logging() {
+    echo "Enabling logging of martian packets..."
+    sysctl -w net.ipv4.conf.all.log_martians=1 || echo "Failed to enable martian packet logging"
+}
+
+# Disable IRC daemon
+remove_irc_daemon() {
+    echo "Removing IRC daemon..."
+    apt remove --purge ircd || echo "Failed to remove IRC daemon"
+}
+
+# Disable Minetest service
+remove_minetest_service() {
+    echo "Removing Minetest service..."
+    apt remove --purge minetest || echo "Failed to remove Minetest service"
+}
+
+# Update Apache
+update_apache() {
+    echo "Updating Apache..."
+    apt update && apt upgrade apache2 || echo "Failed to update Apache"
+}
+
+# Update PHP
+update_php() {
+    echo "Updating PHP..."
+    apt update && apt upgrade php || echo "Failed to update PHP"
+}
+
+# Remove prohibited software
+remove_prohibited_software() {
+    echo "Removing prohibited software..."
+    apt remove --purge nmap john netcat ophcrack fcrackzip dsniff rfdump || echo "Failed to remove prohibited software"
+}
+
+# Disable SSH root login
+disable_ssh_root_login() {
+    echo "Disabling SSH root login..."
+    sed -i 's/#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config || echo "Failed to disable SSH root login"
+    systemctl restart sshd
+}
+
+# Disable unnecessary services (FTP, POP3, SMTP)
+disable_services() {
+    echo "Disabling FTP, POP3, and SMTP services..."
+    systemctl disable vsftpd || echo "Failed to disable FTP"
+    systemctl disable dovecot || echo "Failed to disable POP3"
+    systemctl disable postfix || echo "Failed to disable SMTP"
+}
+
+# Update Sudo
+update_sudo() {
+    echo "Updating sudo..."
+    apt update && apt upgrade sudo || echo "Failed to update sudo"
+}
+
+# Enable IPv4 protection features
+enable_ipv4_protection() {
+    echo "Enabling IPv4 protection features..."
+    sysctl -w net.ipv4.tcp_syncookies=1 || echo "Failed to enable SYN cookies"
+    sysctl -w net.ipv4.icmp_echo_ignore_broadcasts=1 || echo "Failed to enable ICMP broadcast ignore"
+    sysctl -w net.ipv4.conf.all.accept_redirects=0 || echo "Failed to disable ICMP redirects"
+    sysctl -w net.ipv4.tcp_rfc1337=1 || echo "Failed to enable TIME-WAIT assassination protection"
+}
+
+# Restrict unprivileged access to kernel syslog
+restrict_syslog_access() {
+    echo "Restricting unprivileged access to kernel syslog..."
+    sysctl -w kernel.dmesg_restrict=1 || echo "Failed to restrict syslog access"
+}
+
+# Fix insecure permissions on PostgreSQL configuration
+fix_postgresql_permissions() {
+    echo "Fixing insecure permissions on PostgreSQL configuration files..."
+    chmod 640 /etc/postgresql/*/main/*.conf || echo "Failed to fix PostgreSQL permissions"
+}
+
+# Set Apache server tokens to least and disable trace requests
+harden_apache() {
+    echo "Hardening Apache configuration..."
+    echo "ServerTokens Prod" >> /etc/apache2/conf-available/security.conf || echo "Failed to set Apache server tokens"
+    echo "TraceEnable off" >> /etc/apache2/conf-available/security.conf || echo "Failed to disable Apache trace requests"
+    systemctl restart apache2
+}
+
+# Fix GRUB configuration permissions
+fix_grub_permissions() {
+    echo "Fixing GRUB configuration permissions..."
+    chmod 600 /boot/grub/grub.cfg || echo "Failed to fix GRUB permissions"
+}
+
+# Apply all security updates
+apply_security_updates() {
+    echo "Applying security updates..."
+    apt update && apt upgrade -y || echo "Failed to apply security updates"
+}
+
+# Disable Samba SMB1 protocol and require encryption
+harden_samba() {
+    echo "Hardening Samba configuration..."
+    echo "server min protocol = SMB2" >> /etc/samba/smb.conf || echo "Failed to disable SMB1"
+    echo "smb encrypt = required" >> /etc/samba/smb.conf || echo "Failed to require Samba encryption"
+    systemctl restart smbd
+}
+
+# Main execution
+fix_shadow_permissions
+enable_firewall
+enable_syn_cookies
+ignore_bogus_icmp
+enable_martian_logging
+remove_irc_daemon
+remove_minetest_service
+update_apache
+update_php
+remove_prohibited_software
+disable_ssh_root_login
+disable_services
+update_sudo
+enable_ipv4_protection
+restrict_syslog_access
+fix_postgresql_permissions
+harden_apache
+fix_grub_permissions
+apply_security_updates
+harden_samba
+
+echo "Remediation script complete."
