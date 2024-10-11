@@ -7,7 +7,7 @@ $domainDN = (Get-ADDomain).DistinguishedName
 # Get the "Administrators" group from the Builtin container
 $adminGroup = Get-ADGroup -Filter { Name -eq "Administrators" } -SearchBase "CN=Builtin,$domainDN"
 
-# Define current users (typically from the Administrators group)
+# Define current users (e.g., from the Administrators group or a list)
 $current_users = @"
 Administrator
 pink
@@ -28,9 +28,6 @@ POLUS$
 MIRA$
 "@ -split "\r?\n" | ForEach-Object { $_.Trim() }
 
-# Define the AD group that controls RDP access
-$rdpADGroup = "Remote Desktop Users"
-
 # Define allowed users
 $allowed_users = @"
 cyan
@@ -46,6 +43,30 @@ lime
 yellow
 black
 "@ -split "\r?\n" | ForEach-Object { $_.Trim() }
+
+# Find unauthorized users (not in the allowed_users list)
+$unauthorized_users = $current_users | Where-Object { $_ -notin $allowed_users }
+
+# Function to remove unauthorized users
+function Remove-UnauthorizedUsers {
+    param (
+        [string[]]$unauthorized_users
+    )
+
+    foreach ($user in $unauthorized_users) {
+        try {
+            Write-Host "Attempting to remove user account: $user" -ForegroundColor Yellow
+            # Remove the user account from Active Directory
+            Remove-ADUser -Identity $user -Confirm:$false -ErrorAction Stop
+            Write-Host "Successfully removed user account: $user" -ForegroundColor Green
+        } catch {
+            Write-Host "Error removing user account $user $_" -ForegroundColor Red
+        }
+    }
+}
+
+# Call the function to remove unauthorized users
+Remove-UnauthorizedUsers -unauthorized_users $unauthorized_users
 
 # Define allowed admins
 $allowed_admins = @"
