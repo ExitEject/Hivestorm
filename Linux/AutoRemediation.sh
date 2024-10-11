@@ -16,7 +16,7 @@ SYSTEM_USERS=("fwupd-refresh" "hplip" "dnsmasq" "sssd" "pulse" "flatpak" "saned"
 "usbmux" "polkitd" "avahi" "systemd-journal" "mysql" "systemd-coredump" "sys" "sync" "games" "man" "lp" "mail" 
 "news" "uucp" "proxy" "www-data" "backup" "list" "irc" "gnats" "nobody" "systemd-timesync" "systemd-network" 
 "systemd-resolve" "systemd-bus-proxy" "gdm" "systemd-oom" "ntpd" "openvpn" "clamav" "nscd" "docker" "libvirt" 
-"pulse-access" "Debian-tor" "chrony" "tss" "plex" "snmp" "lxd")
+"pulse-access" "Debian-tor" "chrony" "tss" "plex" "snmp" "lxd" "mysql" "postgres" "oracle" "mssql" "db2inst1" "db2fenc1")
 
 # Define sudo/root allowed users
 SUDO_ALLOWED_USERS=("root" "cyan" "red" "white" "pink")
