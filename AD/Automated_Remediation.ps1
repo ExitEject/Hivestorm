@@ -629,3 +629,19 @@ try {
 
 # Inform the user that Chrome needs to be restarted
 Write-Host "Please restart Google Chrome for the changes to take effect."
+
+# Enable NLA for RDP Connections
+
+# Path to the registry key for RDP settings
+$RdpTcpRegPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp"
+
+# Enable NLA by setting UserAuthentication to 1
+Set-ItemProperty -Path $RdpTcpRegPath -Name "UserAuthentication" -Value 1
+
+# Ensure that Remote Desktop connections are allowed
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0
+
+# Enable Remote Desktop in the Windows Firewall
+Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+Write-Host "Network Level Authentication has been enabled for Remote Desktop."
