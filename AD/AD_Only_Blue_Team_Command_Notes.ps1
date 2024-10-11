@@ -124,6 +124,8 @@ if ($Response -eq "y") {
 }
 netstat -abonp TCP
 Get-ChildItem -Path C:\Users -Include *.txt,*.bak,*.ini,*.pdf,*.xls,*.xlsx,*.doc,*.docx,*.log,*.csv,*.exe -File -Recurse -ErrorAction SilentlyContinue
+Write-Host "Audit Users Passwords using mimikatz"
+Write-Host ".\mimikatz.exe `"privilege::debug`" `"token::elevate`" `"sekurlsa::msv`" `"lsadump::sam`" `"sekurlsa::msv`" `"exit`""
 Write-Host "Need to find a specific string across the entire machine?"
 Write-Host "Get-ChildItem -Path C:\Users -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { if (Select-String -Path `$_.FullName -Pattern `'flag{`' -Quiet -ErrorAction SilentlyContinue) { `$_.FullName } }" -ForegroundColor Green
 Write-Host "Need to find a file hash?"
