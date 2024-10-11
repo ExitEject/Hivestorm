@@ -673,3 +673,77 @@ Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server" 
 Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
 Write-Host "Network Level Authentication has been enabled for Remote Desktop."
+
+#################################TEST CODE##################################
+# Stop and disable Remote Registry service
+Set-Service -Name "RemoteRegistry" -StartupType Disabled
+Stop-Service -Name "RemoteRegistry"
+
+# Validate heap integrity setting (enable it)
+New-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Session Manager" -Name "DisableHeapLookaside" -Value 1 -PropertyType DWord -Force
+
+# Disable AutoPlay for all users
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoDriveTypeAutoRun" -Value 255
+
+# IIS: Require SSL connections
+Import-Module WebAdministration
+Set-WebConfigurationProperty -Filter "system.webServer/security/access" -Name "sslFlags" -Value "Ssl" -PSPath "IIS:\"
+
+# PHP: Disable display errors (if PHP is installed)
+if (Test-Path "HKLM:\SOFTWARE\PHP") {
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\PHP" -Name "display_errors" -Value "Off"
+}
+
+# Prevent users from installing printer drivers
+Set-ItemProperty -Path "HKLM:\Software\Policies\Microsoft\Windows NT\Printers" -Name "NoPrinterDrivers" -Value 1 -PropertyType DWord
+
+# Restrict CD-ROM access to locally logged-on user only
+Set-ItemProperty -Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoCDBurning" -Value 1
+
+# Microsoft network client: Digitally sign communications (always)
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name "RequireSecuritySignature" -Value 1
+
+# Allow system to be shut down without logging on (disable)
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name "ShutdownWithoutLogon" -Value 0
+
+# Stop and disable SNMP service
+Set-Service -Name "SNMP" -StartupType Disabled
+Stop-Service -Name "SNMP"
+
+# Require secure RPC communication
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Rpc" -Name "EnableAuthEpResolution" -Value 1 -PropertyType DWord
+
+# IIS: Disable detailed errors
+Set-WebConfigurationProperty -Filter "system.webServer/httpErrors" -Name "errorMode" -Value "DetailedLocalOnly" -PSPath "IIS:\"
+
+# Enable Internet Explorer Enhanced Security Configuration
+Set-ItemProperty -Path "HKLM:\Software\Microsoft\Active Setup\Installed Components\{FFE2A43C-56B9-4bf5-9A79-CC6D4285608A}" -Name "IsInstalled" -Value 1
+
+# Deny access to this computer from the network (includes Guest)
+ntrights -u Guest -r SeDenyNetworkLogonRight
+
+# Recovery Console: Disable automatic administrative logon
+Set-ItemProperty -Path "HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Setup\RecoveryConsole" -Name "SecurityLevel" -Value 1
+
+# Microsoft network server: Digitally sign communications (always)
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name "RequireSecuritySignature" -Value 1
+
+# Do not allow anonymous enumeration of SAM accounts and shares
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "RestrictAnonymous" -Value 1
+
+# Stop and disable SNMP Trap service
+Set-Service -Name "SNMPTRAP" -StartupType Disabled
+Stop-Service -Name "SNMPTRAP"
+
+# Stop and disable Net.Tcp Port Sharing Service
+Set-Service -Name "NetTcpPortSharing" -StartupType Disabled
+Stop-Service -Name "NetTcpPortSharing"
+
+# Disable SMB 1.x
+Disable-WindowsOptionalFeature -Online -FeatureName "SMB1Protocol" -NoRestart
+
+# Do not allow supported Plug and Play device redirection
+Set-ItemProperty -Path "HKLM:\Software\Policies\Microsoft\Windows NT\Terminal Services" -Name "fDisablePNPRedir" -Value 1
+
+# Enable Internet Properties: Enhanced Protected Mode
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "EnableEnhancedProtectedMode" -Value 1
