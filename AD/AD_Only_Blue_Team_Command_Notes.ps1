@@ -123,8 +123,11 @@ if ($Response -eq "y") {
     Write-Host "You chose not to display PowerShell history." -ForegroundColor Yellow
 }
 
-Get-ChildItem -Path C:\Users -Include *.txt,*.bak,*.ini,*.pdf,*.xls,*.xlsx,*.doc,*.docx,*.log -File -Recurse -ErrorAction SilentlyContinue
-
+Get-ChildItem -Path C:\Users -Include *.txt,*.bak,*.ini,*.pdf,*.xls,*.xlsx,*.doc,*.docx,*.log,*.csv,*.exe -File -Recurse -ErrorAction SilentlyContinue
+Write-Host "Need to find a specific string across the entire machine?"
+Write-Host "Get-ChildItem -Path C:\Users -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { if (Select-String -Path `$_.FullName -Pattern `'flag{`' -Quiet -ErrorAction SilentlyContinue) { `$_.FullName } }" -ForegroundColor Green
+Write-Host "Need to find a file hash?"
+Write-Host "Get-FileHash -Algorithm MD5 -Path `"C:\users\cyan\Documents\secedit.jfm`"" -ForegroundColor Green
 Write-Host "Need to find out information regarding CNAMEs?"
 Write-Host "Get-DnsServerResourceRecord -ZoneName `"crewmate.local`" -ComputerName `"polus.crewmate.local`" | Where-Object {`$_.RecordType -eq `"CNAME`"} | Select-Object HostName, @{Name=`"Alias`";Expression={`$_.RecordData.HostNameAlias}}" -ForegroundColor Green
 Write-Host "Do you need to reenable something like Microsoft Defender but there's no GPO?"
