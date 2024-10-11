@@ -10,7 +10,7 @@ fi
 AUTHORIZED_USERS=("blue" "green" "brown" "purple" "orange" "lime" "yellow" "black" "cyan" "red" "white" "pink")
 
 # Add normally authorized system accounts (built-in users)
-SYSTEM_USERS=("fwupd-refresh" "hplip" "dnsmasq" "sssd" "pulse" "flatpak" "saned" "colord" "root" "syslog" "_apt" "tss" 
+SYSTEM_USERS=("fwupd-refresh" "hplip" "dnsmasq" "sssd" "pulse" "flatpak" "_flatpak mail spool" "_flatpak" "saned" "colord" "root" "syslog" "_apt" "tss" 
 "rtkit" "kernoops" "uuidd" "cups-pk-helper" "lightdm" "tcpdump" "ftp" "speech-dispatcher" "avahi-autoipd" 
 "nm-openvpn" "geoclue" "messagebus" "sshd" "daemon" "bin" "postfix" "rpc" "rpcuser" "dbus" "ntp" "saslauth" "chrony" 
 "usbmux" "polkitd" "avahi" "systemd-journal" "mysql" "systemd-coredump" "sys" "sync" "games" "man" "lp" "mail" 
