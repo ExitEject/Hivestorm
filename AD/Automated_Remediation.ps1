@@ -604,3 +604,28 @@ if (Test-Path $ccleanerPath) {
     Write-Host "CCleaner executable not found on desktop."
 }
 
+# Define the registry path for Chrome policies
+$registryPath = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+
+# Create the registry key if it doesn't exist
+if (-not (Test-Path $registryPath)) {
+    try {
+        New-Item -Path $registryPath -Force | Out-Null
+        Write-Host "Created registry key: $registryPath"
+    } catch {
+        Write-Error "Failed to create registry key: $_"
+        exit 1
+    }
+}
+
+# Set the AdsSettingForIntrusiveAdsSites policy to block ads (value 2)
+try {
+    Set-ItemProperty -Path $registryPath -Name "AdsSettingForIntrusiveAdsSites" -Value 2 -Type DWord
+    Write-Host "Successfully set AdsSettingForIntrusiveAdsSites to block intrusive ads."
+} catch {
+    Write-Error "Failed to set the policy: $_"
+    exit 1
+}
+
+# Inform the user that Chrome needs to be restarted
+Write-Host "Please restart Google Chrome for the changes to take effect."
