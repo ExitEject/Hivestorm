@@ -6,10 +6,13 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-echo "Removing unauthorized users, make sure to replace the names not allowed here"
-
 # Define authorized and sudo/root allowed users
 AUTHORIZED_USERS=("blue" "green" "brown" "purple" "orange" "lime" "yellow" "black" "cyan" "red" "white" "pink")
+
+# Add normally authorized system accounts (built-in users)
+SYSTEM_USERS=("root" "ftp" "messagebus" "sshd" "daemon" "bin" "postfix" "rpc" "rpcuser" "dbus" "ntp" "saslauth" "chrony" "usbmux" "polkitd" "avahi" "systemd-journal" "mysql" "systemd-coredump" "sys" "sync" "games" "man" "lp" "mail" "news" "uucp" "proxy" "www-data" "backup" "list" "irc" "gnats" "nobody" "systemd-timesync" "systemd-network" "systemd-resolve" "systemd-bus-proxy")
+
+# Define sudo/root allowed users
 SUDO_ALLOWED_USERS=("cyan" "red" "white" "pink")
 
 # Get current users from the system
@@ -25,9 +28,12 @@ remove_sudo_privileges() {
     fi
 }
 
+# Merge authorized users and system users to form a complete list
+FULL_AUTHORIZED_USERS=("${AUTHORIZED_USERS[@]}" "${SYSTEM_USERS[@]}")
+
 # Remove users not in the authorized list
 for user in $CURRENT_USERS; do
-    if [[ ! " ${AUTHORIZED_USERS[@]} " =~ " ${user} " ]]; then
+    if [[ ! " ${FULL_AUTHORIZED_USERS[@]} " =~ " ${user} " ]]; then
         echo "User $user is not authorized. Deleting user..."
         userdel -r "$user"
     fi
@@ -44,8 +50,6 @@ for user in $CURRENT_USERS; do
         fi
     fi
 done
-
-echo "Script execution completed."
 
 echo "Setting minimum password length to 10..."
 
