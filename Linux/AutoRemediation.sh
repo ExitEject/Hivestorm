@@ -6,12 +6,6 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-
-echo "Setting minimum password length to 10..."
-
-# Modify /etc/pam.d/common-password
-sed -i '/pam_unix.so/ s/$/ minlen=10/' /etc/pam.d/common-password
-
 echo "Disabling IPv4 forwarding..."
 
 # Modify /etc/sysctl.conf
@@ -23,15 +17,6 @@ fi
 
 # Apply the changes
 sysctl -p
-
-echo "Enabling Uncomplicated Firewall (UFW)..."
-
-ufw --force enable
-
-echo "Disabling and removing POP3 service..."
-
-systemctl stop dovecot
-systemctl disable dovecot
 
 echo "Uncommenting security updates source..."
 
@@ -50,11 +35,6 @@ apt upgrade -y
 apt install unattended-upgrades -y
 dpkg-reconfigure --priority=low unattended-upgrades
 
-# Set strong password policies
-echo "Enforcing strong password policies..."
-apt install libpam-cracklib -y
-sed -i '/pam_cracklib.so/ s/retry=3 minlen=8 difok=3/retry=3 minlen=12 difok=3 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1/' /etc/pam.d/common-password
-
 echo "Installing Fail2Ban to prevent brute-force attacks..."
 apt install fail2ban -y
 systemctl enable fail2ban
@@ -71,42 +51,12 @@ echo "fs.protected_hardlinks = 1" | sudo tee -a /etc/sysctl.conf
 echo "fs.protected_symlinks = 1" | sudo tee -a /etc/sysctl.conf
 sudo sysctl -p
 
-echo "Configuring password expiration policies..."
-sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS   90/' /etc/login.defs
-sed -i 's/^PASS_MIN_DAYS.*/PASS_MIN_DAYS   10/' /etc/login.defs
-sed -i 's/^PASS_WARN_AGE.*/PASS_WARN_AGE   7/' /etc/login.defs
-
 
 echo "Removing prohibited software Game Conqueror and ManaPlus..."
 
 apt remove -y gameconqueror manaplus
 
-echo "Configuring Chromium to block pop-ups and redirects..."
 
-mkdir -p /etc/chromium/policies/managed/
-
-cat <<EOF > /etc/chromium/policies/managed/block_popups.json
-{
-    "DefaultPopupsSetting": 2
-}
-EOF
-
-echo "Configured Chromium to block pop-ups via policy."
-
-echo "Configuring SSH to not permit empty passwords..."
-
-if grep -q '^PermitEmptyPasswords' /etc/ssh/sshd_config; then
-    sed -i 's/^PermitEmptyPasswords.*/PermitEmptyPasswords no/' /etc/ssh/sshd_config
-else
-    echo 'PermitEmptyPasswords no' >> /etc/ssh/sshd_config
-fi
-
-# Restart SSH service
-systemctl restart sshd
-
-echo "Remediation script completed successfully."
-
-###############################EXPERIMENTAL TEST CODE###############################################
 # Function to check and fix permissions on the shadow file
 fix_shadow_permissions() {
     echo "Fixing permissions on /etc/shadow..."
@@ -355,7 +305,146 @@ remove_bad_users_fix_sudo_privs() {
    done
 }
 
+update_password_policies() {
+   echo "Configuring SSH to not permit empty passwords..."
+   
+   if grep -q '^PermitEmptyPasswords' /etc/ssh/sshd_config; then
+       sed -i 's/^PermitEmptyPasswords.*/PermitEmptyPasswords no/' /etc/ssh/sshd_config
+   else
+       echo 'PermitEmptyPasswords no' >> /etc/ssh/sshd_config
+   fi
+   
+   # Restart SSH service
+   systemctl restart sshd
+   
+   echo "Configuring password expiration policies..."
+   sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS   90/' /etc/login.defs
+   sed -i 's/^PASS_MIN_DAYS.*/PASS_MIN_DAYS   10/' /etc/login.defs
+   sed -i 's/^PASS_WARN_AGE.*/PASS_WARN_AGE   7/' /etc/login.defs
+   
+   # Set strong password policies
+   echo "Enforcing strong password policies..."
+   apt install libpam-cracklib -y
+   sed -i '/pam_cracklib.so/ s/retry=3 minlen=8 difok=3/retry=3 minlen=12 difok=3 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1/' /etc/pam.d/common-password
+   
+   echo "Setting minimum password length to 10..."
+   
+   # Modify /etc/pam.d/common-password
+   sed -i '/pam_unix.so/ s/$/ minlen=10/' /etc/pam.d/common-password
+}
+
+update_chrome() {
+
+   echo "Configuring Chromium to block pop-ups and redirects..."
+   
+   mkdir -p /etc/chromium/policies/managed/
+   
+   cat <<EOF > /etc/chromium/policies/managed/block_popups.json
+   {
+       "DefaultPopupsSetting": 2
+   }
+   EOF
+   
+   echo "Configured Chromium to block pop-ups via policy."
+
+   echo "Disabling Flash in Chromium..."
+   
+   cat <<EOF > /etc/chromium/policies/managed/disable_flash.json
+   {
+       "PluginsAllowedForUrls": [],
+       "PluginsBlockedForUrls": ["*"]
+   }
+   EOF
+   
+   echo "Disabled Flash in Chromium via policy."
+   
+   echo "Blocking third-party cookies..."
+   
+   cat <<EOF > /etc/chromium/policies/managed/block_third_party_cookies.json
+   {
+       "BlockThirdPartyCookies": true
+   }
+   EOF
+   
+   echo "Blocked third-party cookies in Chromium via policy."
+   
+   echo "Enabling Safe Browsing..."
+   
+   cat <<EOF > /etc/chromium/policies/managed/enable_safe_browsing.json
+   {
+       "SafeBrowsingProtectionLevel": 1
+   }
+   EOF
+   
+   echo "Enabled Safe Browsing in Chromium via policy."
+
+   echo "Disabling password manager..."
+   
+   cat <<EOF > /etc/chromium/policies/managed/disable_password_manager.json
+   {
+       "PasswordManagerEnabled": false
+   }
+   EOF
+   
+   echo "Disabled password manager in Chromium via policy."
+
+   echo "Configuring Chromium to automatically update..."
+   
+   cat <<EOF > /etc/chromium/policies/managed/auto_update.json
+   {
+       "AutoUpdateEnabled": true
+   }
+   EOF
+   
+   echo "Enabled automatic updates for Chromium via policy."
+
+   echo "Security configurations for Chromium have been applied."
+
+}
+
+update_firefox() {
+
+   echo "Configuring Firefox to block pop-ups, disable telemetry, and apply other security settings..."
+   
+   mkdir -p /etc/firefox/policies/
+   
+   cat <<EOF > /etc/firefox/policies/policies.json
+   {
+       "policies": {
+           "DisableTelemetry": true,
+           "DisableFirefoxStudies": true,
+           "BlockPopups": true,
+           "Cookies": {
+               "Default": {
+                   "AcceptThirdParty": "never"
+               }
+           },
+           "DisablePasswordManager": true,
+           "EnableTrackingProtection": true,
+           "ExtensionUpdate": true,
+           "AppAutoUpdate": true
+       }
+   }
+   EOF
+   
+   echo "Configured Firefox with the following settings:"
+   echo "- Disabled telemetry and Firefox studies"
+   echo "- Blocked pop-ups"
+   echo "- Blocked third-party cookies"
+   echo "- Disabled password manager"
+   echo "- Enabled Enhanced Tracking Protection"
+   echo "- Enabled automatic extension and browser updates"
+   
+   echo "Security configurations for Firefox have been applied."
+
+}
+
+
+
 # Main execution
+update_chrome
+#update_firefox #currently disabled
+update_password_policies
 remove_bad_users_fix_sudo_privs
 fix_shadow_permissions
 enable_firewall
