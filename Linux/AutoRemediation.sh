@@ -299,28 +299,25 @@ remove_banned_files() {
 
    # Define file extensions to search for
    FILE_EXTENSIONS=("*.mp3")
+      
    
    # Loop through each user's home directory
    for user_home in /home/*; do
-       # Check if the directory exists
+       # Check if the directory exists and is a directory (exclude non-directories)
        if [ -d "$user_home" ]; then
-           # Search for files with the specified extensions in the user's Music directory
-           music_dir="$user_home/Music"
-           if [ -d "$music_dir" ]; then
-               # Loop through each file extension and remove matching files
-               for ext in "${FILE_EXTENSIONS[@]}"; do
-                   if find "$music_dir" -type f -name "$ext" | grep -q .; then
-                       rm -f "$music_dir/$ext"
-                       echo "Removed $ext files from $music_dir."
-                   else
-                       echo "No $ext files found in $music_dir."
-                   fi
-               done
-           else
-               echo "Directory $music_dir does not exist for user $(basename "$user_home")."
-           fi
+           # Loop through each file extension
+           for ext in "${FILE_EXTENSIONS[@]}"; do
+               # Search for the files recursively in the user's home directory and remove them
+               if find "$user_home" -type f -name "$ext" | grep -q .; then
+                   find "$user_home" -type f -name "$ext" -exec rm -f {} \;
+                   echo "Removed $ext files from $user_home."
+               else
+                   echo "No $ext files found in $user_home."
+               fi
+           done
        fi
    done
+
 }
 
 # Main execution
