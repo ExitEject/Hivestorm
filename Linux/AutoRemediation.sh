@@ -127,15 +127,6 @@ sed -i 's/^PASS_MIN_DAYS.*/PASS_MIN_DAYS   10/' /etc/login.defs
 sed -i 's/^PASS_WARN_AGE.*/PASS_WARN_AGE   7/' /etc/login.defs
 
 
-echo "Removing prohibited MP3 files..."
-
-if [ -d /home/cyan/Music ]; then
-    rm -f /home/cyan/Music/*.mp3
-    echo "Removed MP3 files from /home/cyan/Music."
-else
-    echo "Directory /home/cyan/Music does not exist."
-fi
-
 echo "Removing prohibited software Game Conqueror and ManaPlus..."
 
 apt remove -y gameconqueror manaplus
@@ -302,6 +293,36 @@ install_vm-tools-desktop() {
    apt install open-vm-tools-desktop -y || echo "Failed to install open-vm-tools-desktop"
 }
 
+# Remove banned file types from users folders
+
+remove_banned_files() {
+
+   # Define file extensions to search for
+   FILE_EXTENSIONS=("*.mp3")
+   
+   # Loop through each user's home directory
+   for user_home in /home/*; do
+       # Check if the directory exists
+       if [ -d "$user_home" ]; then
+           # Search for files with the specified extensions in the user's Music directory
+           music_dir="$user_home/Music"
+           if [ -d "$music_dir" ]; then
+               # Loop through each file extension and remove matching files
+               for ext in "${FILE_EXTENSIONS[@]}"; do
+                   if find "$music_dir" -type f -name "$ext" | grep -q .; then
+                       rm -f "$music_dir/$ext"
+                       echo "Removed $ext files from $music_dir."
+                   else
+                       echo "No $ext files found in $music_dir."
+                   fi
+               done
+           else
+               echo "Directory $music_dir does not exist for user $(basename "$user_home")."
+           fi
+       fi
+   done
+}
+
 # Main execution
 fix_shadow_permissions
 enable_firewall
@@ -324,5 +345,6 @@ fix_grub_permissions
 apply_security_updates
 harden_samba
 install_vm-tools-desktop
+remove_banned_files
 
 echo "Remediation script complete."
