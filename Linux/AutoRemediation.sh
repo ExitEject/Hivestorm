@@ -176,10 +176,16 @@ disable_ssh_root_login() {
 
 # Disable unnecessary services (FTP, POP3, SMTP)
 disable_services() {
-    echo "Disabling FTP, POP3, and SMTP services..."
-    systemctl disable vsftpd || echo "Failed to disable FTP"
-    systemctl disable dovecot || echo "Failed to disable POP3"
-    systemctl disable postfix || echo "Failed to disable SMTP"
+     echo "Disabling FTP, POP3, and SMTP services..."
+    
+    # List of services to disable
+    services=("vsftpd" "dovecot" "postfix" "telnetd" "rsh-server" "rlogin" "rexec" "tftp" "snmpd" "smb" "smbd" "nmbd")
+
+    # Loop through the services and disable each one
+    for service in "${services[@]}"; do
+        systemctl stop "$service" || echo "Failed to stop $service"
+        systemctl disable "$service" || echo "Failed to disable $service"
+    done
 }
 
 # Update Sudo
