@@ -275,75 +275,59 @@ update_password_policies() {
    # Modify /etc/pam.d/common-password
    sed -i '/pam_unix.so/ s/$/ minlen=10/' /etc/pam.d/common-password
 }
-
 update_chrome() {
 
-   echo "Configuring Chromium to block pop-ups and redirects..."
+   echo "Configuring Chromium to apply security policies..."
    
    mkdir -p /etc/chromium/policies/managed/
-   
-   cat <<EOF > /etc/chromium/policies/managed/block_popups.json
-   {
+
+   # Block pop-ups
+   echo '{
        "DefaultPopupsSetting": 2
-   }
-   EOF
-   
+   }' > /etc/chromium/policies/managed/block_popups.json
+
    echo "Configured Chromium to block pop-ups via policy."
 
-   echo "Disabling Flash in Chromium..."
-   
-   cat <<EOF > /etc/chromium/policies/managed/disable_flash.json
-   {
+   # Disable Flash
+   echo '{
        "PluginsAllowedForUrls": [],
        "PluginsBlockedForUrls": ["*"]
-   }
-   EOF
-   
+   }' > /etc/chromium/policies/managed/disable_flash.json
+
    echo "Disabled Flash in Chromium via policy."
    
-   echo "Blocking third-party cookies..."
-   
-   cat <<EOF > /etc/chromium/policies/managed/block_third_party_cookies.json
-   {
+   # Block third-party cookies
+   echo '{
        "BlockThirdPartyCookies": true
-   }
-   EOF
-   
+   }' > /etc/chromium/policies/managed/block_third_party_cookies.json
+
    echo "Blocked third-party cookies in Chromium via policy."
    
-   echo "Enabling Safe Browsing..."
-   
-   cat <<EOF > /etc/chromium/policies/managed/enable_safe_browsing.json
-   {
+   # Enable Safe Browsing
+   echo '{
        "SafeBrowsingProtectionLevel": 1
-   }
-   EOF
-   
+   }' > /etc/chromium/policies/managed/enable_safe_browsing.json
+
    echo "Enabled Safe Browsing in Chromium via policy."
 
-   echo "Disabling password manager..."
-   
-   cat <<EOF > /etc/chromium/policies/managed/disable_password_manager.json
-   {
+   # Disable password manager
+   echo '{
        "PasswordManagerEnabled": false
-   }
-   EOF
-   
+   }' > /etc/chromium/policies/managed/disable_password_manager.json
+
    echo "Disabled password manager in Chromium via policy."
 
-   echo "Configuring Chromium to automatically update..."
-   
-   cat <<EOF > /etc/chromium/policies/managed/auto_update.json
-   {
+   # Enable automatic updates
+   echo '{
        "AutoUpdateEnabled": true
-   }
-   EOF
-   
+   }' > /etc/chromium/policies/managed/auto_update.json
+
    echo "Enabled automatic updates for Chromium via policy."
 
    echo "Security configurations for Chromium have been applied."
 
 }
+
 
 update_firefox() {
 
@@ -351,8 +335,7 @@ update_firefox() {
    
    mkdir -p /etc/firefox/policies/
    
-   cat <<EOF > /etc/firefox/policies/policies.json
-   {
+   echo '{
        "policies": {
            "DisableTelemetry": true,
            "DisableFirefoxStudies": true,
@@ -367,8 +350,7 @@ update_firefox() {
            "ExtensionUpdate": true,
            "AppAutoUpdate": true
        }
-   }
-   EOF
+   }' > /etc/firefox/policies/policies.json
    
    echo "Configured Firefox with the following settings:"
    echo "- Disabled telemetry and Firefox studies"
@@ -381,6 +363,7 @@ update_firefox() {
    echo "Security configurations for Firefox have been applied."
 
 }
+
 
 # Function to detect the distribution
 detect_distro() {
@@ -431,26 +414,6 @@ update_fedora_repo() {
     # Fedora's repo files
     dnf check-update -y
     dnf upgrade --refresh -y
-}
-
-# Function to update repository for FreeBSD
-update_freebsd_repo() {
-    echo "Updating repositories for FreeBSD..."
-    
-    # Update repository config in case of issues
-    if [ ! -f /usr/local/etc/pkg/repos/FreeBSD.conf ]; then
-        echo 'Creating repository file...'
-        mkdir -p /usr/local/etc/pkg/repos
-        cat <<EOF > /usr/local/etc/pkg/repos/FreeBSD.conf
-FreeBSD: {
-  url: "pkg+http://pkg.FreeBSD.org/\${ABI}/latest",
-  enabled: yes
-}
-EOF
-    fi
-
-    pkg update -f
-    pkg upgrade -y
 }
 
 # Function to handle unsupported distros
