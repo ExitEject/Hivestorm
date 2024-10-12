@@ -6,56 +6,6 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-# Define authorized and sudo/root allowed users
-AUTHORIZED_USERS=("blue" "green" "brown" "purple" "orange" "lime" "yellow" "black" "cyan" "red" "white" "pink")
-
-# Add normally authorized system accounts (built-in users)
-SYSTEM_USERS=("fwupd-refresh" "hplip" "dnsmasq" "sssd" "pulse" "flatpak" "_flatpak mail spool" "_flatpak" "saned" "colord" "root" "syslog" "_apt" "tss" 
-"rtkit" "kernoops" "uuidd" "cups-pk-helper" "lightdm" "tcpdump" "ftp" "speech-dispatcher" "avahi-autoipd" 
-"nm-openvpn" "geoclue" "messagebus" "sshd" "daemon" "bin" "postfix" "rpc" "rpcuser" "dbus" "ntp" "saslauth" "chrony" 
-"usbmux" "polkitd" "avahi" "systemd-journal" "mysql" "systemd-coredump" "sys" "sync" "games" "man" "lp" "mail" 
-"news" "uucp" "proxy" "www-data" "backup" "list" "irc" "gnats" "nobody" "systemd-timesync" "systemd-network" 
-"systemd-resolve" "systemd-bus-proxy" "gdm" "systemd-oom" "ntpd" "openvpn" "clamav" "nscd" "docker" "libvirt" 
-"pulse-access" "Debian-tor" "chrony" "tss" "plex" "snmp" "lxd" "mysql" "postgres" "oracle" "mssql" "db2inst1" "db2fenc1")
-
-# Define sudo/root allowed users
-SUDO_ALLOWED_USERS=("root" "cyan" "red" "white" "pink")
-
-# Get current users from the system
-CURRENT_USERS=$(cut -d: -f1 /etc/passwd)
-
-# Function to remove unauthorized sudo/root privileges
-remove_sudo_privileges() {
-    local user=$1
-    if groups "$user" | grep -qE '\bsudo\b|\broot\b'; then
-        deluser "$user" sudo
-        deluser "$user" root
-        echo "Removed sudo/root privileges from user $user."
-    fi
-}
-
-# Merge authorized users and system users to form a complete list
-FULL_AUTHORIZED_USERS=("${AUTHORIZED_USERS[@]}" "${SYSTEM_USERS[@]}")
-
-# Remove users not in the authorized list
-for user in $CURRENT_USERS; do
-    if [[ ! " ${FULL_AUTHORIZED_USERS[@]} " =~ " ${user} " ]]; then
-        echo "User $user is not authorized. Deleting user..."
-        userdel -r "$user"
-    fi
-done
-
-# Check users with sudo or root privileges
-for user in $CURRENT_USERS; do
-    if groups "$user" | grep -qE '\bsudo\b|\broot\b'; then
-        if [[ ! " ${SUDO_ALLOWED_USERS[@]} " =~ " ${user} " ]]; then
-            echo "User $user is not allowed sudo/root privileges. Removing privileges..."
-            remove_sudo_privileges "$user"
-        else
-            echo "User $user is allowed sudo/root privileges."
-        fi
-    fi
-done
 
 echo "Setting minimum password length to 10..."
 
@@ -320,7 +270,87 @@ remove_banned_files() {
 
 }
 
+remove_bad_users_fix_sudo_privs() {
+
+   # Define authorized and sudo/root allowed users
+   AUTHORIZED_USERS=("blue" "green" "brown" "purple" "orange" "lime" "yellow" "black" "cyan" "red" "white" "pink")
+   
+   # Add normally authorized system accounts (built-in users)
+   SYSTEM_USERS=("fwupd-refresh" "hplip" "dnsmasq" "sssd" "pulse" "flatpak" "_flatpak mail spool" "_flatpak" "saned" "colord" "root" "syslog" "_apt" "tss" 
+   "rtkit" "kernoops" "uuidd" "cups-pk-helper" "lightdm" "tcpdump" "ftp" "speech-dispatcher" "avahi-autoipd" 
+   "nm-openvpn" "geoclue" "messagebus" "sshd" "daemon" "bin" "postfix" "rpc" "rpcuser" "dbus" "ntp" "saslauth" "chrony" 
+   "usbmux" "polkitd" "avahi" "systemd-journal" "mysql" "systemd-coredump" "sys" "sync" "games" "man" "lp" "mail" 
+   "news" "uucp" "proxy" "www-data" "backup" "list" "irc" "gnats" "nobody" "systemd-timesync" "systemd-network" 
+   "systemd-resolve" "systemd-bus-proxy" "gdm" "systemd-oom" "ntpd" "openvpn" "clamav" "nscd" "docker" "libvirt" 
+   "pulse-access" "Debian-tor" "chrony" "tss" "plex" "snmp" "lxd" "mysql" "postgres" "oracle" "mssql" "db2inst1" "db2fenc1")
+   
+   # Define sudo/root allowed users
+   SUDO_ALLOWED_USERS=("root" "cyan" "red" "white" "pink")
+   
+   # Get current users from the system
+   CURRENT_USERS=$(cut -d: -f1 /etc/passwd)
+   
+   # Function to remove unauthorized sudo/root privileges
+   remove_sudo_privileges() {
+       local user=$1
+       if groups "$user" | grep -qE '\bsudo\b|\broot\b'; then
+           deluser "$user" sudo
+           deluser "$user" root
+           echo "Removed sudo/root privileges from user $user."
+       fi
+   }
+   
+   # Merge authorized users and system users to form a complete list
+   FULL_AUTHORIZED_USERS=("${AUTHORIZED_USERS[@]}" "${SYSTEM_USERS[@]}")
+   
+   # Collect unauthorized users for review
+   UNAUTHORIZED_USERS=()
+   
+   # Find users not in the authorized list
+   for user in $CURRENT_USERS; do
+       if [[ ! " ${FULL_AUTHORIZED_USERS[@]} " =~ " ${user} " ]]; then
+           UNAUTHORIZED_USERS+=("$user")
+       fi
+   done
+   
+   # If there are unauthorized users, ask for confirmation
+   if [ ${#UNAUTHORIZED_USERS[@]} -gt 0 ]; then
+       echo "The following users will be removed:"
+       for user in "${UNAUTHORIZED_USERS[@]}"; do
+           echo "$user"
+       done
+       echo "Is this okay? Warning: this operation cannot be undone. Make sure you google the user before pressing yes to ensure it's not a system user."
+       read -p "Type 'yes' to proceed: " confirmation
+   
+       if [[ $confirmation == "yes" ]]; then
+           # Proceed with removing unauthorized users
+           for user in "${UNAUTHORIZED_USERS[@]}"; do
+               echo "User $user is not authorized. Deleting user..."
+               userdel -r "$user"
+           done
+       else
+           echo "Operation canceled. No users were removed."
+           exit 1
+       fi
+   else
+       echo "No unauthorized users to remove."
+   fi
+   
+   # Check users with sudo or root privileges
+   for user in $CURRENT_USERS; do
+       if groups "$user" | grep -qE '\bsudo\b|\broot\b'; then
+           if [[ ! " ${SUDO_ALLOWED_USERS[@]} " =~ " ${user} " ]]; then
+               echo "User $user is not allowed sudo/root privileges. Removing privileges..."
+               remove_sudo_privileges "$user"
+           else
+               echo "User $user is allowed sudo/root privileges."
+           fi
+       fi
+   done
+}
+
 # Main execution
+remove_bad_users_fix_sudo_privs
 fix_shadow_permissions
 enable_firewall
 enable_syn_cookies
