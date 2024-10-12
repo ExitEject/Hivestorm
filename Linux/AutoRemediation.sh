@@ -6,57 +6,6 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-echo "Disabling IPv4 forwarding..."
-
-# Modify /etc/sysctl.conf
-if grep -q '^net.ipv4.ip_forward=' /etc/sysctl.conf; then
-    sed -i 's/^net.ipv4.ip_forward=.*/net.ipv4.ip_forward=0/' /etc/sysctl.conf
-else
-    echo 'net.ipv4.ip_forward=0' >> /etc/sysctl.conf
-fi
-
-# Apply the changes
-sysctl -p
-
-echo "Uncommenting security updates source..."
-
-if [ -f /etc/apt/sources.list.d/official-package-repositories.list ]; then
-    sed -i 's/^#\(deb http:\/\/security\.ubuntu\.com\/ubuntu\/ jammy-security main\)/\1/' /etc/apt/sources.list.d/official-package-repositories.list
-else
-    echo "Security updates source file does not exist."
-fi
-
-echo "deb http://archive.ubuntu.com/ubuntu jammy-security main restricted universe multiverse" >> /etc/apt/sources.list.d/official-package-repositories.list
-
-echo "Updating system packages..."
-
-apt update -y
-apt upgrade -y
-apt install unattended-upgrades -y
-dpkg-reconfigure --priority=low unattended-upgrades
-
-echo "Installing Fail2Ban to prevent brute-force attacks..."
-apt install fail2ban -y
-systemctl enable fail2ban
-systemctl start fail2ban
-
-echo "Setting up system auditing with auditd..."
-apt install auditd audispd-plugins -y
-systemctl enable auditd
-systemctl start auditd
-
-echo "Applying security kernel parameters..."
-echo "kernel.randomize_va_space = 2" | sudo tee -a /etc/sysctl.conf
-echo "fs.protected_hardlinks = 1" | sudo tee -a /etc/sysctl.conf
-echo "fs.protected_symlinks = 1" | sudo tee -a /etc/sysctl.conf
-sudo sysctl -p
-
-
-echo "Removing prohibited software Game Conqueror and ManaPlus..."
-
-apt remove -y gameconqueror manaplus
-
-
 # Function to check and fix permissions on the shadow file
 fix_shadow_permissions() {
     echo "Fixing permissions on /etc/shadow..."
@@ -109,12 +58,6 @@ update_apache() {
 update_php() {
     echo "Updating PHP..."
     apt upgrade php || echo "Failed to update PHP"
-}
-
-# Remove prohibited software
-remove_prohibited_software() {
-    echo "Removing prohibited software..."
-    apt remove --purge nmap john netcat ophcrack fcrackzip dsniff rfdump || echo "Failed to remove prohibited software"
 }
 
 # Disable SSH root login
@@ -439,9 +382,157 @@ update_firefox() {
 
 }
 
+# Function to detect the distribution
+detect_distro() {
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        DISTRO=$ID
+        VERSION_ID=$VERSION_ID
+    elif [ -f /usr/bin/lsb_release ]; then
+        DISTRO=$(lsb_release -si)
+        VERSION_ID=$(lsb_release -sr)
+    else
+        echo "Unsupported distribution"
+        exit 1
+    fi
+}
 
+# Function to update repository for Debian-based distros
+update_debian_repo() {
+    echo "Updating repositories for $DISTRO..."
+    
+    # If Mint, adjust to Ubuntu's repos
+    if [[ "$DISTRO" == "linuxmint" ]]; then
+        DISTRO="ubuntu"
+    fi
+
+    REPO_FILE="/etc/apt/sources.list.d/official-package-repositories.list"
+    if [ ! -f "$REPO_FILE" ]; then
+        REPO_FILE="/etc/apt/sources.list"
+    fi
+    
+    if [ -f "$REPO_FILE" ]; then
+        sed -i 's/^#\(deb http:\/\/security\.ubuntu\.com\/ubuntu\/ .* main\)/\1/' "$REPO_FILE"
+    else
+        echo "Security updates source file does not exist, recreating..."
+        echo "deb http://archive.ubuntu.com/ubuntu ${VERSION_CODENAME}-security main restricted universe multiverse" >> "$REPO_FILE"
+    fi
+
+    apt update -y
+    apt upgrade -y
+    apt install unattended-upgrades -y
+    dpkg-reconfigure --priority=low unattended-upgrades
+}
+
+# Function to update repository for Fedora-based distros
+update_fedora_repo() {
+    echo "Updating repositories for Fedora-based distro..."
+    
+    # Fedora's repo files
+    dnf check-update -y
+    dnf upgrade --refresh -y
+}
+
+# Function to update repository for FreeBSD
+update_freebsd_repo() {
+    echo "Updating repositories for FreeBSD..."
+    
+    # Update repository config in case of issues
+    if [ ! -f /usr/local/etc/pkg/repos/FreeBSD.conf ]; then
+        echo 'Creating repository file...'
+        mkdir -p /usr/local/etc/pkg/repos
+        cat <<EOF > /usr/local/etc/pkg/repos/FreeBSD.conf
+FreeBSD: {
+  url: "pkg+http://pkg.FreeBSD.org/\${ABI}/latest",
+  enabled: yes
+}
+EOF
+    fi
+
+    pkg update -f
+    pkg upgrade -y
+}
+
+# Function to handle unsupported distros
+unsupported_distro() {
+    echo "Unsupported distribution. Please update manually."
+    exit 1
+}
+
+# Function to disable IPv4 forwarding
+disable_ipv4_forwarding() {
+    echo "Disabling IPv4 forwarding..."
+
+    if grep -q '^net.ipv4.ip_forward=' /etc/sysctl.conf; then
+        sed -i 's/^net.ipv4.ip_forward=.*/net.ipv4.ip_forward=0/' /etc/sysctl.conf
+    else
+        echo 'net.ipv4.ip_forward=0' >> /etc/sysctl.conf
+    fi
+
+    # Apply the changes
+    sysctl -p
+    echo "IPv4 forwarding disabled."
+}
+
+# Function to install and configure Fail2Ban
+install_fail2ban() {
+    echo "Installing Fail2Ban to prevent brute-force attacks..."
+    apt install fail2ban -y
+    systemctl enable fail2ban
+    systemctl start fail2ban
+    echo "Fail2Ban installed and running."
+}
+
+# Function to set up system auditing with auditd
+setup_auditd() {
+    echo "Setting up system auditing with auditd..."
+    apt install auditd audispd-plugins -y
+    systemctl enable auditd
+    systemctl start auditd
+    echo "auditd installed and running."
+}
+
+# Function to apply security kernel parameters
+apply_kernel_security_params() {
+    echo "Applying security kernel parameters..."
+    
+    echo "kernel.randomize_va_space = 2" | sudo tee -a /etc/sysctl.conf
+    echo "fs.protected_hardlinks = 1" | sudo tee -a /etc/sysctl.conf
+    echo "fs.protected_symlinks = 1" | sudo tee -a /etc/sysctl.conf
+
+    sudo sysctl -p
+    echo "Security kernel parameters applied."
+}
+
+# Function to remove prohibited software
+remove_prohibited_software() {
+    echo "Removing prohibited software Game Conqueror and ManaPlus..."
+    apt remove --purge -y nmap john netcat ophcrack fcrackzip dsniff rfdump gameconqueror manaplus || echo "Failed to remove some prohibited software"
+    echo "Prohibited software removed."
+}
 
 # Main execution
+detect_distro
+
+case "$DISTRO" in
+    ubuntu|debian|linuxmint)
+        update_debian_repo
+        ;;
+    fedora)
+        update_fedora_repo
+        ;;
+    freebsd)
+        update_freebsd_repo
+        ;;
+    *)
+        unsupported_distro
+        ;;
+esac
+disable_ipv4_forwarding
+install_fail2ban
+setup_auditd
+apply_kernel_security_params
+remove_prohibited_software
 update_chrome
 #update_firefox #currently disabled
 update_password_policies
