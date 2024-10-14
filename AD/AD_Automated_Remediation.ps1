@@ -77,7 +77,6 @@ pink
 "@ -split "\r?\n" | ForEach-Object { $_.Trim() }
 
 # Function to ensure authorized users are in Remote Desktop Users group
-# Function to ensure authorized users are in Remote Desktop Users group
 function Add-RDPAccess-AD {
     param (
         [string[]]$authorized_users,
@@ -747,3 +746,13 @@ Set-ItemProperty -Path "HKLM:\Software\Policies\Microsoft\Windows NT\Terminal Se
 
 # Enable Internet Properties: Enhanced Protected Mode
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Internet Explorer\Main" -Name "EnableEnhancedProtectedMode" -Value 1
+
+#################TEST CODE
+
+Write-Host "Enabling Remote Desktop in the Windows Firewall for all profiles..." -ForegroundColor Cyan
+Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+# Allow RDP access from any IP address
+Write-Host "Ensuring that the Remote Desktop firewall rules are configured to allow access from any IP..." -ForegroundColor Cyan
+Get-NetFirewallRule -DisplayName "Remote Desktop - User Mode (TCP-In)" | Set-NetFirewallRule -Profile Any -Action Allow
+Get-NetFirewallRule -DisplayName "Remote Desktop - User Mode (UDP-In)" | Set-NetFirewallRule -Profile Any -Action Allow
