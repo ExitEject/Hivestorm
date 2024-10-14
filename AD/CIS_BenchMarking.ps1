@@ -32,7 +32,7 @@ $ExecutionList = @(
     "AdjustMemoryQuotasForProcess",      #2.2.6
     "AllowLogonLocallyToAdministrators", #2.2.7
      #2.2.8 Not Applicable to Member Server
-    "LogonThroughRemoteDesktopServices", #2.2.9
+    #"LogonThroughRemoteDesktopServices", #2.2.9 #disabled
     "BackupFilesAndDirectories", #2.2.10
     "ChangeSystemTime", #2.2.11
     "ChangeTimeZone",   #2.2.12
@@ -44,7 +44,7 @@ $ExecutionList = @(
     "CreateSymbolicLinks", #2.2.18
     "DebugPrograms", #2.2.19
      #2.2.20 Not Applicable to Member Server
-    "DenyNetworkAccess",  #2.2.21
+    #"DenyNetworkAccess",  #2.2.21 #disabled
     "DenyGuestBatchLogon", #2.2.22
     "DenyGuestServiceLogon", #2.2.23
     "DenyGuestLocalLogon", #2.2.24
