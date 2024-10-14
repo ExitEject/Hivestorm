@@ -46,7 +46,7 @@ remove_irc_daemon() {
 # Disable Minetest service
 remove_minetest_service() {
     echo "Removing Minetest service..."
-    dnf remove --purge minetest -y || echo "Failed to remove Minetest service"
+    dnf remove minetest -y || echo "Failed to remove Minetest service"
 }
 
 # Update Apache
