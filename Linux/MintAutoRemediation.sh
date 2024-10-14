@@ -72,7 +72,7 @@ disable_services() {
      echo "Disabling FTP, POP3, and SMTP services..."
     
     # List of services to disable
-    services=("vsftpd" "dovecot" "postfix" "telnetd" "rsh-server" "rlogin" "rexec" "tftp" "snmpd" "smb" "smbd" "nmbd")
+    services=("vsftpd" "dovecot" "postfix" "telnetd" "rsh-server" "rlogin" "rexec" "tftp" "snmpd")
 
     # Loop through the services and disable each one
     for service in "${services[@]}"; do
