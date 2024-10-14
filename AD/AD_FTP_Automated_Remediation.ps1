@@ -222,7 +222,7 @@ Write-Host "`nEnsuring authorized users have RDP access..." -ForegroundColor Cya
 Add-RDPAccess-AD -authorized_users $allowed_users -adGroup $rdpADGroup
 
 # Define the list of services you want to check and restart if stopped
-$services = @("DNS", "Remote Desktop Services", "NTDS", "FTP", "ISS") # Replace with your desired services
+$services = @("Remote Desktop Services", "FTP", "ISS", "TermService", "FTPSVC", "W3SVC") # Replace with your desired services
 
 # Loop through each service in the list
 foreach ($serviceName in $services) {
