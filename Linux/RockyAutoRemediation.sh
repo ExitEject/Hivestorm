@@ -40,7 +40,7 @@ enable_martian_logging() {
 # Disable IRC daemon
 remove_irc_daemon() {
     echo "Removing IRC daemon..."
-    dnf remove --purge ircd -y || echo "Failed to remove IRC daemon"
+    dnf remove ircd -y || echo "Failed to remove IRC daemon"
 }
 
 # Disable Minetest service
@@ -73,7 +73,7 @@ disable_services() {
      echo "Disabling FTP, POP3, and SMTP services..."
     
     # List of services to disable
-    services=("vsftpd" "dovecot" "postfix" "telnetd" "rsh-server" "rlogin" "rexec" "tftp" "snmpd")
+    services=("vsftpd" "dovecot" "postfix" "telnetd" "rsh-server" "rlogin" "rexec" "tftp" "snmpd" "smb" "smbd" "nmbd")
 
     # Loop through the services and disable each one
     for service in "${services[@]}"; do
@@ -289,7 +289,7 @@ harden_firefox() {
 # Function to remove unauthorized users and fix sudo privileges
 remove_bad_users_fix_sudo_privs() {
     # Define authorized and sudo/root allowed users
-    AUTHORIZED_USERS=("rocky" "blue" "green" "brown" "purple" "orange" "lime" "yellow" "black" "cyan" "red" "white" "pink")
+    AUTHORIZED_USERS=("blue" "green" "brown" "purple" "orange" "lime" "yellow" "black" "cyan" "red" "white" "pink")
    
     # Add normally authorized system accounts (built-in users)
     SYSTEM_USERS=("fwupd-refresh" "hplip" "dnsmasq" "sssd" "pulse" "flatpak" "_flatpak mail spool" "_flatpak" "saned" "colord" "root" "syslog" "_apt" "tss" \
