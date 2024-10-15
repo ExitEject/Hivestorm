@@ -10,6 +10,9 @@ find /home/finder -type f -exec grep -E 'replacethiswithwhatyouwant' {} \; 2>/de
 ```sh
 ps aux
 top
+w
+who
+
 ```
 ## check active connections
 ```sh
@@ -44,5 +47,27 @@ sudo find / -perm /2000 -type d -exec ls -ld {} \; 2>/dev/null
 chmod u-s /path/to/binary
 chmod g-s /path/to/your/file
 ```
+## find harmful software
+```
+ps aux | grep -E '(nc|netcat|bash|perl|python|ruby|sh|reverse)' | grep -v grep
+sudo netstat -tulnp | grep -E '(:4444|:1337|:31337|:8888)'
+find / -type f -perm /111 2>/dev/null | grep -E '\.(sh|py|pl|exe|bin|elf)$' > test.txt
+find / -perm -4000 -type f 2>/dev/null | grep -v '^/bin' | grep -v '^/usr/bin'
+sudo chkrootkit
+```
+
+## remove harmful software
+```
+sudo apt update && sudo apt install clamav clamav-daemon -y
+sudo freshclam
+sudo clamscan -r --bell -i /
+clamscan -r --remove /path/to/directory
+sudo rkhunter --check
+```
+
+
+
 ## useful links
 https://github.com/SystematicSkid/py-storm
+https://book.hacktricks.xyz/generic-methodologies-and-resources/basic-forensic-methodology/linux-forensics
+https://book.hacktricks.xyz/generic-methodologies-and-resources/basic-forensic-methodology/malware-analysis
